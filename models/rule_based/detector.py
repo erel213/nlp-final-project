@@ -5,7 +5,11 @@ from typing import Any
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
-from .entity_mapping import FINANCIAL_ENTITIES, HEALTH_ENTITIES, PII_ENTITIES
+from data.entity_mapping import (
+    PRESIDIO_CONFIDENTIAL_ENTITIES as CONFIDENTIAL_ENTITIES,
+    PRESIDIO_FINANCIAL_ENTITIES as FINANCIAL_ENTITIES,
+    PRESIDIO_PII_ENTITIES as PII_ENTITIES,
+)
 
 _EMPTY_LABELS: dict[str, int] = {
     "benign": 1,
@@ -43,14 +47,13 @@ class RuleBasedDetector:
 
         has_pii = bool(detected & PII_ENTITIES)
         has_fin = bool(detected & FINANCIAL_ENTITIES)
-        has_health = bool(detected & HEALTH_ENTITIES)
+        has_conf = bool(detected & CONFIDENTIAL_ENTITIES)
 
         return {
-            "benign": int(not has_pii),
-            "PII": int(has_pii),
-            "financial": int(has_fin),
-            "health": int(has_health),
-            "confidential": 0,  # no Presidio recognizer covers this category
+            "benign":       int(not has_pii),
+            "PII":          int(has_pii),
+            "financial":    int(has_fin),
+            "confidential": int(has_conf),
         }
 
     def predict_batch(self, texts: list[str]) -> list[dict[str, int]]:

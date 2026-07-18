@@ -18,21 +18,28 @@ models/rule_based/
 Evaluation notebook: `notebooks/02_rule_based_benchmark.ipynb`  
 Results output: `evaluation/results/rule_based_metrics.json`
 
+## Label Schema
+
+The project uses a **4-label multi-label schema**: `benign`, `PII`, `financial`, `confidential`.
+
+`health` was originally planned but removed from scope — ai4privacy/pii-masking-300k contains no health-related entity types, making the label untrainable and unevaluable with available data. This is acknowledged as a dataset limitation in the research report.
+
 ## Label Mapping
 
-Presidio entity types are mapped to the project's 5-label DLP schema:
+Presidio entity types are mapped to the project's 4-label DLP schema:
 
 | Label | Triggered by Presidio entity types |
 |---|---|
-| `PII` | `EMAIL_ADDRESS`, `PHONE_NUMBER`, `PERSON`, `LOCATION`, `IP_ADDRESS`, `URL`, `DATE_TIME`, `NRP`, `US_DRIVER_LICENSE`, + all financial + all health types |
-| `financial` | `CREDIT_CARD`, `IBAN_CODE`, `US_SSN`, `US_BANK_NUMBER`, `US_ITIN`, `US_PASSPORT`, `CRYPTO` |
-| `health` | `MEDICAL_LICENSE`, `US_HEALTHCARE_NPI` |
-| `confidential` | — (no Presidio recognizer; always 0 in current evaluation) |
+| `PII` | `EMAIL_ADDRESS`, `PHONE_NUMBER`, `PERSON`, `LOCATION`, `IP_ADDRESS`, `URL`, `DATE_TIME`, `NRP`, + all financial + all confidential types |
+| `financial` | `CREDIT_CARD`, `IBAN_CODE`, `US_SSN`, `US_BANK_NUMBER`, `US_ITIN`, `CRYPTO` |
+| `confidential` | `US_PASSPORT`, `US_DRIVER_LICENSE` |
 | `benign` | 1 when no entity detected above `score_threshold` |
 
-`financial` and `health` are subsets of `PII` — when either fires, `PII=1` as well.
+`financial` and `confidential` are subsets of `PII` — when either fires, `PII=1` as well.
 
-The `financial` types mirror the `FINPII_TYPES` definition from `notebooks/01_data_exploration.ipynb` and `.claude/rules/datasets.md`.
+Ground-truth label mapping (ai4privacy entity types → labels) lives in `data/preprocessing.py`. The Presidio entity types here are the detector-side equivalents.
+
+**Coverage gap:** the ai4privacy `PASS` (password) entity type has no Presidio recognizer — those instances contribute to ground-truth `confidential` positives that the rule-based model cannot detect. This gap is a key finding comparing rule-based vs. learned approaches.
 
 ## Usage
 
@@ -42,8 +49,8 @@ from models.rule_based import RuleBasedDetector
 detector = RuleBasedDetector(score_threshold=0.4)
 
 # Single text
-detector.predict("My card number is 4111 1111 1111 1111")
-# → {'benign': 0, 'PII': 1, 'financial': 1, 'health': 0, 'confidential': 0}
+detector.predict("My passport number is A12345678.")
+# → {'benign': 0, 'PII': 1, 'financial': 0, 'confidential': 1}
 
 # Batch
 detector.predict_batch(["Call me at 415-555-1234", "Hello, hope you are well."])
@@ -67,9 +74,9 @@ python -m spacy download en_core_web_lg
 Run `notebooks/02_rule_based_benchmark.ipynb` end-to-end. It:
 
 1. Loads the English validation split of `ai4privacy/pii-masking-300k` (~8k rows)
-2. Derives ground-truth labels from `privacy_mask` spans
+2. Derives ground-truth labels from `privacy_mask` spans via `data.preprocessing.build_labels`
 3. Runs `RuleBasedDetector.predict_batch()` on each `source_text`
-4. Computes precision, recall, F1 per label (`benign`, `PII`, `financial`)
+4. Computes precision, recall, F1 per label (`benign`, `PII`, `financial`, `confidential`)
 5. Plots confusion matrices
 6. Shows false-positive / false-negative examples for error analysis
 7. Saves metrics to `evaluation/results/rule_based_metrics.json`
@@ -81,7 +88,7 @@ Run `notebooks/02_rule_based_benchmark.ipynb` end-to-end. It:
 | High precision on structured financial data (credit cards, IBANs) — regex patterns are exact | Misses implicit or obfuscated PII (e.g., `my card ends in 1111`) |
 | Fast inference — no GPU required, ~thousands of texts/second | High false-positive rate on benign text containing phone-like or date-like strings |
 | No training data required | Cannot detect context-dependent leakage (`"My SSN is irrelevant here"` still fires) |
-| Transparent and auditable rule set | No coverage for `health` or `confidential` categories in current evaluation |
+| Transparent and auditable rule set | No coverage for `confidential` passwords (PASS entities) — structural gap vs. learned models |
 
 The precision-recall gap between the rule-based model and fine-tuned transformers quantifies the value of contextual understanding — a key result in the research paper.
 

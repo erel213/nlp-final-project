@@ -1,0 +1,58 @@
+{
+  "model": "roberta_finetuned",
+  "dataset": "ai4privacy/pii-masking-300k",
+  "split": "validation",
+  "language_filter": "English",
+  "n_samples": 7946,
+  "threshold": 0.5,
+  "per_label": {
+    "benign": {
+      "precision": 0.9018789144050104,
+      "recall": 0.9515418502202643,
+      "f1": 0.9260450160771704,
+      "support": 908
+    },
+    "PII": {
+      "precision": 0.9944078004014912,
+      "recall": 0.9853651605569764,
+      "f1": 0.9898658292891807,
+      "support": 7038
+    },
+    "financial": {
+      "precision": 0.9422077922077922,
+      "recall": 0.9489862655330281,
+      "f1": 0.945584881068752,
+      "support": 1529
+    },
+    "confidential": {
+      "precision": 0.9597225926913844,
+      "recall": 0.9906387665198237,
+      "f1": 0.9749356455764802,
+      "support": 3632
+    }
+  },
+  "macro_f1": 0.9591078430028958,
+  "macro_f1_ci": {
+    "lower": 0.9548215366017415,
+    "upper": 0.9633896699161434,
+    "level": 0.95
+  },
+  "auc_roc": {
+    "benign": 0.9888209130297079,
+    "PII": 0.9873714185923362,
+    "financial": 0.9928433639675024,
+    "confidential": 0.994948829647965,
+    "macro": 0.9909961313093779
+  },
+  "metadata": {
+    "n_bootstrap": 1000,
+    "random_state": 42,
+    "epochs": 5,
+    "batch_size": 16,
+    "lr": 2e-05,
+    "base_model": "roberta-base",
+    "frozen_blocks": "0-9",
+    "label_smoothing": 0.05,
+    "checkpoint": "/Users/erelv/projects-chkp/final-project/models/roberta/checkpoint/best_model.pt"
+  }
+}

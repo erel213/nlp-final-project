@@ -1,0 +1,64 @@
+{
+  "model": "majority_prior",
+  "dataset": "ai4privacy/pii-masking-300k",
+  "split": "validation",
+  "language_filter": "English",
+  "n_samples": 7946,
+  "threshold": 0.5,
+  "per_label": {
+    "benign": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 908
+    },
+    "PII": {
+      "precision": 0.8857286685124591,
+      "recall": 1.0,
+      "f1": 0.9394020288307529,
+      "support": 7038
+    },
+    "financial": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1529
+    },
+    "confidential": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 3632
+    }
+  },
+  "macro_f1": 0.2348505072076882,
+  "macro_f1_ci": {
+    "lower": 0.23390887062402657,
+    "upper": 0.23576749135408354,
+    "level": 0.95
+  },
+  "auc_roc": {
+    "benign": null,
+    "PII": null,
+    "financial": null,
+    "confidential": null,
+    "macro": null
+  },
+  "metadata": {
+    "n_bootstrap": 1000,
+    "random_state": 42,
+    "baseline": "per-label training-prior constant predictor",
+    "constant_prediction": {
+      "benign": 0,
+      "PII": 1,
+      "financial": 0,
+      "confidential": 0
+    },
+    "training_priors": {
+      "benign": 0.116424,
+      "PII": 0.883576,
+      "financial": 0.190183,
+      "confidential": 0.443092
+    }
+  }
+}

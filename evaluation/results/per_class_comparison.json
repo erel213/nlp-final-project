@@ -1,0 +1,56 @@
+{
+  "split": "validation",
+  "n_samples": 7946,
+  "note": "per-label F1 on full TEST split from cached probas; models @0.5, Ensemble @per-label thresholds.",
+  "table": {
+    "Majority": {
+      "benign": 0.0,
+      "PII": 0.9394,
+      "financial": 0.0,
+      "confidential": 0.0,
+      "macro_f1": 0.2349
+    },
+    "Regex": {
+      "benign": 0.4534,
+      "PII": 0.8291,
+      "financial": 0.4852,
+      "confidential": 0.7847,
+      "macro_f1": 0.6381
+    },
+    "Presidio rule_based": {
+      "benign": 0.5931,
+      "PII": 0.9367,
+      "financial": 0.656,
+      "confidential": 0.611,
+      "macro_f1": 0.6992
+    },
+    "Bi-LSTM": {
+      "benign": 0.8057,
+      "PII": 0.9692,
+      "financial": 0.9281,
+      "confidential": 0.9475,
+      "macro_f1": 0.9126
+    },
+    "BERT": {
+      "benign": 0.9106,
+      "PII": 0.9875,
+      "financial": 0.9314,
+      "confidential": 0.9707,
+      "macro_f1": 0.95
+    },
+    "RoBERTa": {
+      "benign": 0.926,
+      "PII": 0.9899,
+      "financial": 0.9456,
+      "confidential": 0.9749,
+      "macro_f1": 0.9591
+    },
+    "Ensemble": {
+      "benign": 0.9369,
+      "PII": 0.9918,
+      "financial": 0.9559,
+      "confidential": 0.979,
+      "macro_f1": 0.9659
+    }
+  }
+}

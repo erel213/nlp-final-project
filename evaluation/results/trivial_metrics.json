@@ -1,0 +1,54 @@
+{
+  "model": "regex_text_only",
+  "dataset": "ai4privacy/pii-masking-300k",
+  "split": "validation",
+  "language_filter": "English",
+  "n_samples": 7946,
+  "threshold": 0.5,
+  "per_label": {
+    "benign": {
+      "precision": 0.29822732012513037,
+      "recall": 0.9449339207048458,
+      "f1": 0.45336856010568033,
+      "support": 908
+    },
+    "PII": {
+      "precision": 0.9901361215229828,
+      "recall": 0.7131287297527706,
+      "f1": 0.8291071281077063,
+      "support": 7038
+    },
+    "financial": {
+      "precision": 0.3875,
+      "recall": 0.6487900588620014,
+      "f1": 0.48520420640743456,
+      "support": 1529
+    },
+    "confidential": {
+      "precision": 0.9470611132736473,
+      "recall": 0.6698788546255506,
+      "f1": 0.7847121432027092,
+      "support": 3632
+    }
+  },
+  "macro_f1": 0.6380980094558826,
+  "macro_f1_ci": {
+    "lower": 0.6292366094631574,
+    "upper": 0.6467228904612716,
+    "level": 0.95
+  },
+  "auc_roc": {
+    "benign": null,
+    "PII": null,
+    "financial": null,
+    "confidential": null,
+    "macro": null
+  },
+  "metadata": {
+    "n_bootstrap": 1000,
+    "random_state": 42,
+    "baseline": "text-only hard-pattern classifier (no privacy_mask access)",
+    "note": "pure-patterns variant: NO TitleCase name-guess; harshest PII floor",
+    "distinct_from": "Presidio rule_based model uses statistical NER; this does not"
+  }
+}

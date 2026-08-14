@@ -6,6 +6,7 @@ import pandas as pd
 from .metrics import compute_all_metrics, bootstrap_ci
 from .error_analysis import classify_errors, error_summary
 from .ablation import load_weights, run_ablation, weight_sensitivity, fuse
+from .kfold import aggregate_folds, fold_scores, paired_fold_test
 from .visualization import (
     plot_confusion_matrices,
     plot_per_label_bars,
@@ -39,6 +40,9 @@ __all__ = [
     "run_ablation",
     "weight_sensitivity",
     "fuse",
+    "aggregate_folds",
+    "fold_scores",
+    "paired_fold_test",
     "plot_confusion_matrices",
     "plot_per_label_bars",
     "plot_roc_curves",

@@ -55,16 +55,28 @@ def _pos_weights(labels: np.ndarray, device: torch.device) -> torch.Tensor:
     return torch.tensor(neg / pos, dtype=torch.float32).to(device)
 
 
-def train(args: argparse.Namespace) -> None:
-    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def fit(
+    train_df,
+    val_df,
+    args: argparse.Namespace,
+    ckpt_path: Path,
+    device: torch.device | None = None,
+) -> tuple[Path, float]:
+    """Train the Bi-LSTM on ``train_df``, selecting the checkpoint on ``val_df``.
+
+    A fresh ``Vocabulary`` is built from ``train_df`` and saved as ``vocab.json`` next
+    to ``ckpt_path`` (its ``predict.py`` needs the matching vocab). ``val_df`` is the
+    selection/DEV partition (early stopping only) — never a TEST split. Returns
+    ``(ckpt_path, best_val_loss)``. Shared by the CLI ``train`` and the k-fold
+    orchestrator so their training regimes are identical.
+    """
+    ckpt_path = Path(ckpt_path)
+    ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+    vocab_path = ckpt_path.parent / "vocab.json"
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    print("Loading data...")
-    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
-    # `train`. The `validation` split is reserved untouched as the TEST set for
-    # final reporting only — never read here.
-    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
     train_texts = train_df["source_text"].tolist()
     val_texts = val_df["source_text"].tolist()
     train_labels = train_df[LABEL_COLS].values.astype(np.float32)
@@ -124,11 +136,21 @@ def train(args: argparse.Namespace) -> None:
 
         if avg_val < best_val_loss:
             best_val_loss = avg_val
-            torch.save(model.state_dict(), CHECKPOINT_DIR / "best_model.pt")
-            vocab.save(CHECKPOINT_DIR / "vocab.json")
+            torch.save(model.state_dict(), ckpt_path)
+            vocab.save(vocab_path)
             print(f"  → checkpoint saved (val_loss={best_val_loss:.4f})")
 
     print("Training complete.")
+    return ckpt_path, best_val_loss
+
+
+def train(args: argparse.Namespace) -> None:
+    print("Loading data...")
+    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
+    # `train`. The `validation` split is reserved untouched as the TEST set for
+    # final reporting only — never read here.
+    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
+    fit(train_df, val_df, args, CHECKPOINT_DIR / "best_model.pt")
 
 
 if __name__ == "__main__":

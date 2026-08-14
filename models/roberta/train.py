@@ -17,7 +17,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
-from data.preprocessing import load_split, LABEL_COLS
+from data.preprocessing import load_train_holdout, LABEL_COLS
 from models.roberta.dataset import DLPDataset, collate_fn, MODEL_NAME
 from models.roberta.model import RobertaForDLPClassification
 
@@ -54,19 +54,36 @@ def _macro_f1(logits_all: list[torch.Tensor], labels_all: list[torch.Tensor]) ->
     return float(np.mean(f1s))
 
 
-def train(args: argparse.Namespace) -> None:
-    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def fit(
+    train_df,
+    val_df,
+    args: argparse.Namespace,
+    ckpt_path: Path,
+    device: torch.device | None = None,
+) -> tuple[Path, float]:
+    """Fine-tune RoBERTa on ``train_df``, selecting the checkpoint on ``val_df``.
+
+    ``val_df`` is the selection/DEV partition (early stopping only) — never a TEST
+    split. Writes the best checkpoint to ``ckpt_path`` and returns
+    ``(ckpt_path, best_val_macro_f1)``. Shared by the CLI ``train`` and the k-fold
+    orchestrator so their training regimes are identical.
+    """
+    ckpt_path = Path(ckpt_path)
+    ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+    if device is None:
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
     print(f"Device: {device}")
 
-    print("Loading data...")
-    train_df = load_split("train")
-    val_df = load_split("validation")
     train_texts = train_df["source_text"].tolist()
     val_texts = val_df["source_text"].tolist()
     train_labels = train_df[LABEL_COLS].values.astype(np.float32)
     val_labels = val_df[LABEL_COLS].values.astype(np.float32)
-    print(f"Train: {len(train_texts):,}  |  Val: {len(val_texts):,}")
+    print(f"Train: {len(train_texts):,}  |  Selection holdout: {len(val_texts):,}")
 
     print("Encoding inputs...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -96,7 +113,6 @@ def train(args: argparse.Namespace) -> None:
     scheduler = get_linear_schedule_with_warmup(optimizer, warmup_steps, total_steps)
 
     best_val_f1 = 0.0
-    ckpt_path = CHECKPOINT_DIR / "best_model.pt"
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -143,6 +159,17 @@ def train(args: argparse.Namespace) -> None:
             torch.save(model.state_dict(), ckpt_path)
 
     print(f"\nBest val macro-F1: {best_val_f1:.4f}  →  {ckpt_path}")
+    return ckpt_path, best_val_f1
+
+
+def train(args: argparse.Namespace) -> None:
+    print("Loading data...")
+    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
+    # `train` (per .claude/rules/model-roberta.md ADR-005 / model-bert.md). The
+    # `validation` split is reserved untouched as the TEST set for final reporting
+    # only — never read here.
+    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
+    fit(train_df, val_df, args, CHECKPOINT_DIR / "best_model.pt")
 
 
 if __name__ == "__main__":

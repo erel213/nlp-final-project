@@ -1,0 +1,86 @@
+{
+  "model": "ensemble_weighted_fusion",
+  "dataset": "ai4privacy/pii-masking-300k",
+  "split": "validation",
+  "language_filter": "English",
+  "n_samples": 3973,
+  "threshold": 0.5,
+  "per_label": {
+    "benign": {
+      "precision": 0.8757396449704142,
+      "recall": 0.9652173913043478,
+      "f1": 0.9183040330920372,
+      "support": 460
+    },
+    "PII": {
+      "precision": 0.9953797285590529,
+      "recall": 0.9812126387702819,
+      "f1": 0.9882454128440367,
+      "support": 3513
+    },
+    "financial": {
+      "precision": 0.976063829787234,
+      "recall": 0.935031847133758,
+      "f1": 0.9551073519843851,
+      "support": 785
+    },
+    "confidential": {
+      "precision": 0.9709833422890919,
+      "recall": 0.986353711790393,
+      "f1": 0.9786081776333604,
+      "support": 1832
+    }
+  },
+  "macro_f1": 0.9600662438884549,
+  "macro_f1_ci": {
+    "lower": 0.9539443303108839,
+    "upper": 0.9659198665509097,
+    "level": 0.95
+  },
+  "auc_roc": {
+    "benign": 0.9929751605836706,
+    "PII": 0.9898061857201204,
+    "financial": 0.9937348656186815,
+    "confidential": 0.995668626055245,
+    "macro": 0.9930462094944295
+  },
+  "metadata": {
+    "n_bootstrap": 1000,
+    "random_state": 42,
+    "fusion": "per-category weighted late fusion",
+    "optimizer": "per-label grid + Nelder-Mead on true F1",
+    "eval_split": "held_out_half",
+    "weights": {
+      "bert": {
+        "benign": 0.09615384615384616,
+        "PII": 0.1,
+        "financial": 0.00018676461433107144,
+        "confidential": 0.3
+      },
+      "roberta": {
+        "benign": 0.8076923076923077,
+        "PII": 0.8,
+        "financial": 0.5167154329826308,
+        "confidential": 0.5
+      },
+      "bilstm": {
+        "benign": 0.09615384615384616,
+        "PII": 0.1,
+        "financial": 0.19174500404656672,
+        "confidential": 0.0
+      },
+      "rule_based": {
+        "benign": 0.0,
+        "PII": 0.0,
+        "financial": 0.2913527983564713,
+        "confidential": 0.2
+      }
+    },
+    "thresholds": {
+      "benign": 0.75,
+      "PII": 0.25,
+      "financial": 0.49999999999999994,
+      "confidential": 0.49999999999999994
+    }
+  }
+}

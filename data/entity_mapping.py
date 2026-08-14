@@ -41,9 +41,17 @@ PRESIDIO_FINANCIAL_ENTITIES: frozenset[str] = frozenset({
     "CRYPTO",
 })
 
+# Custom confidential entity types are emitted by the recognizers in
+# models/rule_based/patterns.py (comment 007): PASSWORD_SECRET covers the
+# ai4privacy PASS (password) gap; GENERIC_ID covers generic/international
+# PASSPORT/IDCARD/DRIVERLICENSE numbers that the US-specific stock Presidio
+# recognizers miss; PROPRIETARY_MARK covers classification-marker vocabulary.
 PRESIDIO_CONFIDENTIAL_ENTITIES: frozenset[str] = frozenset({
     "US_PASSPORT",
     "US_DRIVER_LICENSE",
+    "PASSWORD_SECRET",
+    "GENERIC_ID",
+    "PROPRIETARY_MARK",
 })
 
 PRESIDIO_PII_ENTITIES: frozenset[str] = (

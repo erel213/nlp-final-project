@@ -15,7 +15,9 @@ data/
 
 ## Label Schema
 
-The project uses a **4-label multi-label schema**. An email can belong to more than one category simultaneously.
+The project uses a **4-label multi-label schema**. A text/sentence can belong to more than one category simultaneously.
+
+> **Evaluated unit / external-validity note:** the evaluated unit is a **sentence/snippet from ai4privacy/pii-masking-300k**, not an email. Email DLP is the motivating application only; ai4privacy is synthetic sentence-level PII text (no subject lines, threading, quoting, signatures, or email register), so results are a threat to external validity for real emails. See `CLAUDE.md` → "Scope and Evaluated Task".
 
 | Label | Description |
 |---|---|
@@ -127,6 +129,27 @@ from data.preprocessing import LABEL_COLS
 | validation | 7,946 | 908 (11.4%) | 7,038 (88.6%) | 1,529 (19.2%) | 3,632 (45.7%) |
 
 `financial` and `confidential` counts for the training split were not computed at time of writing — run `notebooks/01_data_exploration.ipynb` to populate them.
+
+### Logical split roles (comment 001)
+
+ai4privacy exposes only `train` and `validation`. To avoid selecting and reporting
+on the same data, we assign three logical roles:
+
+| Role | Source | Used for | Touched |
+|---|---|---|---|
+| FIT | `train` minus the 10% holdout (`load_train_holdout(frac=0.10, seed=42)`) | fitting model parameters | many times |
+| SELECTION / DEV | seeded 10% holdout of `train` (`train_holdout`) | neural early-stopping / checkpoint selection; ensemble weight + threshold fitting | many times |
+| TEST | full `validation` split | final reporting of all four single models AND the ensemble | exactly once |
+
+`load_train_holdout()` produces the FIT/SELECTION partition deterministically
+(`seed=42`) so every training script and the ensemble DEV cache see the same slice.
+The `validation` split is never read during training or weight fitting.
+
+> Note: the current single-model checkpoints were originally selected on the
+> `validation` split; we accept those checkpoints as-is and only correct the
+> *reporting* (all metrics now recomputed on the untouched TEST split, with
+> selection moved to `train_holdout` for future runs). A fully-pure re-selection
+> would require retraining — tracked in `comments/RETRAIN_QUEUE.md`.
 
 `financial` and `confidential` are subsets of `PII`, so their percentages are relative to total rows, not to PII rows.
 

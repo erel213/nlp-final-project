@@ -11,6 +11,7 @@ from data.entity_mapping import (
     PRESIDIO_FINANCIAL_ENTITIES as FINANCIAL_ENTITIES,
     PRESIDIO_PII_ENTITIES as PII_ENTITIES,
 )
+from models.rule_based.patterns import build_confidential_recognizers
 
 _EMPTY_LABELS: dict[str, int] = {
     "benign": 1,
@@ -26,7 +27,13 @@ def _build_analyzer(spacy_model: str) -> AnalyzerEngine:
         "nlp_engine_name": "spacy",
         "models": [{"lang_code": "en", "model_name": spacy_model}],
     })
-    return AnalyzerEngine(nlp_engine=provider.create_engine(), supported_languages=["en"])
+    engine = AnalyzerEngine(nlp_engine=provider.create_engine(), supported_languages=["en"])
+    # Register custom confidential-category recognizers (comment 007): stock
+    # Presidio has no password/secret recognizer and only US-specific
+    # passport/DL recognizers, leaving `confidential` structurally at 0.0 F1.
+    for recognizer in build_confidential_recognizers():
+        engine.registry.add_recognizer(recognizer)
+    return engine
 
 
 class RuleBasedDetector:

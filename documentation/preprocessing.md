@@ -15,7 +15,9 @@ data/
 
 ## Label Schema
 
-The project uses a **4-label multi-label schema**. An email can belong to more than one category simultaneously.
+The project uses a **4-label multi-label schema**. A text/sentence can belong to more than one category simultaneously.
+
+> **Evaluated unit / external-validity note:** the evaluated unit is a **sentence/snippet from ai4privacy/pii-masking-300k**, not an email. Email DLP is the motivating application only; ai4privacy is synthetic sentence-level PII text (no subject lines, threading, quoting, signatures, or email register), so results are a threat to external validity for real emails. See `CLAUDE.md` → "Scope and Evaluated Task".
 
 | Label | Description |
 |---|---|

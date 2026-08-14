@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
@@ -32,8 +33,10 @@ class RuleBasedDetector:
     """Zero-training DLP baseline using Microsoft Presidio (regex + spaCy NER).
 
     Wraps Presidio's AnalyzerEngine and maps detected entity types to the
-    project's 5-label schema: {benign, PII, financial, health, confidential}.
+    project's 4-label schema: {benign, PII, financial, confidential}.
     """
+
+    LABEL_COLS = ["benign", "PII", "financial", "confidential"]
 
     def __init__(self, score_threshold: float = 0.4, spacy_model: str = "en_core_web_lg") -> None:
         self.score_threshold = score_threshold
@@ -59,6 +62,20 @@ class RuleBasedDetector:
     def predict_batch(self, texts: list[str]) -> list[dict[str, int]]:
         """Classify a list of texts."""
         return [self.predict(t) for t in texts]
+
+    def predict_proba(self, emails: list[str]) -> np.ndarray:
+        """Return binary 0.0/1.0 predictions, shape (N, 4), columns in LABEL_COLS order.
+
+        These are hard flags, not calibrated probabilities (see ADR-003 in
+        model-rule-based.md). For single-model evaluation, pass this array as
+        y_pred and y_proba=None to compute_all_metrics. For the ensemble, it is
+        consumed by evaluation.fuse as a 0/1 probability contribution.
+        """
+        preds = self.predict_batch(emails)
+        return np.array(
+            [[float(p[label]) for label in self.LABEL_COLS] for p in preds],
+            dtype=np.float32,
+        )
 
     def explain(self, text: str) -> list[dict[str, Any]]:
         """Return raw Presidio results for error analysis (entity type, span, score)."""

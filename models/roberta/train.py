@@ -17,7 +17,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
-from data.preprocessing import load_split, LABEL_COLS
+from data.preprocessing import load_train_holdout, LABEL_COLS
 from models.roberta.dataset import DLPDataset, collate_fn, MODEL_NAME
 from models.roberta.model import RobertaForDLPClassification
 
@@ -60,13 +60,16 @@ def train(args: argparse.Namespace) -> None:
     print(f"Device: {device}")
 
     print("Loading data...")
-    train_df = load_split("train")
-    val_df = load_split("validation")
+    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
+    # `train` (per .claude/rules/model-roberta.md ADR-005 / model-bert.md). The
+    # `validation` split is reserved untouched as the TEST set for final reporting
+    # only — never read here.
+    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
     train_texts = train_df["source_text"].tolist()
     val_texts = val_df["source_text"].tolist()
     train_labels = train_df[LABEL_COLS].values.astype(np.float32)
     val_labels = val_df[LABEL_COLS].values.astype(np.float32)
-    print(f"Train: {len(train_texts):,}  |  Val: {len(val_texts):,}")
+    print(f"Train: {len(train_texts):,}  |  Selection holdout: {len(val_texts):,}")
 
     print("Encoding inputs...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)

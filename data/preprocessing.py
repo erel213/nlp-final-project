@@ -53,3 +53,35 @@ def load_split(split: str, language: str = "English") -> pd.DataFrame:
     df = ds[split].filter(lambda x: x["language"] == language).to_pandas()
     label_df = df["privacy_mask"].apply(build_labels).apply(pd.Series)
     return pd.concat([df, label_df], axis=1).reset_index(drop=True)
+
+
+def load_train_holdout(
+    frac: float = 0.10,
+    seed: int = 42,
+    language: str = "English",
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Carve a seeded held-out slice from ``train`` for model selection.
+
+    The ai4privacy dataset exposes only ``train`` and ``validation``. To keep the
+    ``validation`` split an untouched TEST set (touched exactly once, for final
+    reporting of all models and the ensemble), neural early-stopping / checkpoint
+    selection must use a slice of ``train`` instead — per ``.claude/rules/model-bert.md``
+    ("use a held-out 10% of training data").
+
+    Returns ``(train_fit_df, selection_holdout_df)``:
+        - ``train_fit_df`` — the (1-frac) fraction used to fit model parameters.
+        - ``selection_holdout_df`` — the ``frac`` fraction used ONLY for early
+          stopping / checkpoint selection. Never reported on.
+
+    The split is a deterministic seeded permutation, so every training script and
+    the ensemble weight-fitting DEV cache see the same partition.
+    """
+    df = load_split("train", language=language)
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(len(df))
+    n_holdout = max(1, int(round(frac * len(df))))
+    holdout_idx = perm[:n_holdout]
+    fit_idx = perm[n_holdout:]
+    train_fit_df = df.iloc[fit_idx].reset_index(drop=True)
+    selection_holdout_df = df.iloc[holdout_idx].reset_index(drop=True)
+    return train_fit_df, selection_holdout_df

@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from data.preprocessing import load_split
+from data.preprocessing import load_train_holdout
 from models.bilstm.dataset import DLPTextDataset, collate_fn
 from models.bilstm.model import BiLSTMCharCNN
 from models.bilstm.vocab import Vocabulary
@@ -61,8 +61,10 @@ def train(args: argparse.Namespace) -> None:
     print(f"Device: {device}")
 
     print("Loading data...")
-    train_df = load_split("train")
-    val_df = load_split("validation")
+    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
+    # `train`. The `validation` split is reserved untouched as the TEST set for
+    # final reporting only — never read here.
+    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
     train_texts = train_df["source_text"].tolist()
     val_texts = val_df["source_text"].tolist()
     train_labels = train_df[LABEL_COLS].values.astype(np.float32)

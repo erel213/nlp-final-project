@@ -66,9 +66,7 @@ def load_train_holdout(
     The ai4privacy dataset exposes only ``train`` and ``validation``. To keep the
     ``validation`` split an untouched TEST set (touched exactly once, for final
     reporting of all models and the ensemble), neural early-stopping / checkpoint
-    selection must use a slice of ``train`` instead — per ``.claude/rules/model-bert.md``
-    ("use a held-out 10% of training data").
-
+    selection must use a slice of ``train`` instead 
     Returns ``(train_fit_df, selection_holdout_df)``:
         - ``train_fit_df`` — the (1-frac) fraction used to fit model parameters.
         - ``selection_holdout_df`` — the ``frac`` fraction used ONLY for early

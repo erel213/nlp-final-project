@@ -5,7 +5,14 @@ import pandas as pd
 
 from .metrics import compute_all_metrics, bootstrap_ci
 from .error_analysis import classify_errors, error_summary
-from .ablation import load_weights, run_ablation, weight_sensitivity, fuse
+from .ablation import (
+    load_weights,
+    run_ablation,
+    weight_sensitivity,
+    fuse,
+    paired_bootstrap_delta,
+    ensemble_vs_best_single,
+)
 from .kfold import aggregate_folds, fold_scores, paired_fold_test
 from .visualization import (
     plot_confusion_matrices,
@@ -40,6 +47,8 @@ __all__ = [
     "run_ablation",
     "weight_sensitivity",
     "fuse",
+    "paired_bootstrap_delta",
+    "ensemble_vs_best_single",
     "aggregate_folds",
     "fold_scores",
     "paired_fold_test",

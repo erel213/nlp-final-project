@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -109,6 +110,114 @@ def run_ablation(
         rows.append(best_solo_row)
 
     return pd.DataFrame(rows)
+
+
+def paired_bootstrap_delta(
+    y_true: np.ndarray,
+    y_pred_a: np.ndarray,
+    y_pred_b: np.ndarray,
+    metric_fn: Callable[[np.ndarray, np.ndarray], float],
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+    random_state: int = 42,
+) -> dict:
+    """Paired bootstrap on the per-row-resampled metric difference (A minus B).
+
+    Mirrors the resampling style of ``metrics.bootstrap_ci`` but draws ONE index
+    vector per resample and applies it to BOTH prediction arrays, so the delta is
+    measured on the same rows for both configs. Returns the mean delta, a
+    ``confidence``-level CI on the delta, a two-sided bootstrap p-value, and a
+    ``significant`` flag that is True iff the delta CI excludes 0.
+    """
+    y_true = np.asarray(y_true, dtype=int)
+    y_pred_a = np.asarray(y_pred_a, dtype=int)
+    y_pred_b = np.asarray(y_pred_b, dtype=int)
+
+    rng = np.random.default_rng(random_state)
+    n = len(y_true)
+    deltas = np.empty(n_resamples)
+    for i in range(n_resamples):
+        idx = rng.integers(0, n, size=n)
+        deltas[i] = metric_fn(y_true[idx], y_pred_a[idx]) - metric_fn(
+            y_true[idx], y_pred_b[idx]
+        )
+
+    alpha = 1.0 - confidence
+    lower, upper = np.percentile(deltas, [alpha / 2 * 100, (1 - alpha / 2) * 100])
+    frac_le = float(np.mean(deltas <= 0.0))
+    frac_ge = float(np.mean(deltas >= 0.0))
+    p_value = min(1.0, 2.0 * min(frac_le, frac_ge))
+    significant = bool(lower > 0.0 or upper < 0.0)
+
+    return {
+        "mean_delta": float(np.mean(deltas)),
+        "ci_lower": float(lower),
+        "ci_upper": float(upper),
+        "p_value": float(p_value),
+        "n_resamples": int(n_resamples),
+        "level": float(confidence),
+        "significant": significant,
+    }
+
+
+def ensemble_vs_best_single(
+    model_probas: dict[str, np.ndarray],
+    weights: dict[str, dict[str, float]],
+    y_true: np.ndarray,
+    threshold: float = 0.5,
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+    random_state: int = 42,
+) -> dict:
+    """Paired-bootstrap RQ1 test: full ensemble vs. the best single model.
+
+    Fuses the full ensemble and each solo model on the SAME ``y_true`` rows,
+    identifies the best single model by point macro-F1, then runs
+    ``paired_bootstrap_delta`` on (ensemble - best_single) macro-F1 using one set
+    of resample indices per draw. The RQ1 improvement claim holds only when the
+    returned delta CI excludes 0 (``significant`` True).
+
+    Returns the ``paired_bootstrap_delta`` dict augmented with
+    ``best_single_model``, ``ensemble_macro_f1`` and ``best_single_macro_f1``.
+    Leaves ``run_ablation``'s DataFrame contract untouched.
+    """
+    y_true = np.asarray(y_true, dtype=int)
+
+    def _macro_f1(yt: np.ndarray, yp: np.ndarray) -> float:
+        return float(f1_score(yt, yp, average="macro", zero_division=0))
+
+    y_pred_ensemble, _ = fuse(model_probas, weights, threshold=threshold)
+    ensemble_f1 = _macro_f1(y_true, y_pred_ensemble)
+
+    best_model: str | None = None
+    best_f1 = -1.0
+    best_pred: np.ndarray | None = None
+    for model in model_probas:
+        solo_pred, _ = fuse(
+            {model: model_probas[model]}, _solo_weights(model), threshold=threshold
+        )
+        solo_f1 = _macro_f1(y_true, solo_pred)
+        if solo_f1 > best_f1:
+            best_f1 = solo_f1
+            best_model = model
+            best_pred = solo_pred
+
+    if best_pred is None:
+        raise ValueError("ensemble_vs_best_single requires at least one model in model_probas")
+
+    result = paired_bootstrap_delta(
+        y_true,
+        y_pred_ensemble,
+        best_pred,
+        _macro_f1,
+        n_resamples=n_resamples,
+        confidence=confidence,
+        random_state=random_state,
+    )
+    result["best_single_model"] = best_model
+    result["ensemble_macro_f1"] = ensemble_f1
+    result["best_single_macro_f1"] = best_f1
+    return result
 
 
 def weight_sensitivity(

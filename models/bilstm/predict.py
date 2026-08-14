@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -27,7 +30,18 @@ class BiLSTMDLPDetector:
         self.device = torch.device(device)
         self.vocab = Vocabulary.load(vocab_path)
 
-        self.model = BiLSTMCharCNN(self.vocab.n_words, self.vocab.n_chars)
+        # Reconstruct the exact architecture the checkpoint was trained with. The
+        # char-CNN ablation variant has no char-CNN, so read run_meta.json if present
+        # (falls back to the full-model default for legacy checkpoints).
+        meta_path = Path(checkpoint_path).parent / "run_meta.json"
+        use_char_cnn = True
+        if meta_path.exists():
+            use_char_cnn = json.loads(meta_path.read_text()).get("use_char_cnn", True)
+        self.use_char_cnn = use_char_cnn
+
+        self.model = BiLSTMCharCNN(
+            self.vocab.n_words, self.vocab.n_chars, use_char_cnn=use_char_cnn
+        )
         state = torch.load(checkpoint_path, map_location=self.device, weights_only=True)
         self.model.load_state_dict(state)
         self.model.to(self.device)

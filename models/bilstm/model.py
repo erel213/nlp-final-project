@@ -10,7 +10,8 @@ CHAR_FILTERS = 64
 CHAR_OUT_DIM = len(CHAR_KERNELS) * CHAR_FILTERS  # 192
 
 WORD_EMB_DIM = 100
-LSTM_INPUT_DIM = WORD_EMB_DIM + CHAR_OUT_DIM  # 292
+LSTM_INPUT_DIM = WORD_EMB_DIM + CHAR_OUT_DIM  # 292 (word + char-CNN)
+LSTM_INPUT_DIM_NO_CHAR = WORD_EMB_DIM         # 100 (word only, char-CNN ablation)
 LSTM_HIDDEN = 256
 LSTM_LAYERS = 2
 LSTM_OUT_DIM = LSTM_HIDDEN * 2  # 512 (bidirectional)
@@ -40,17 +41,23 @@ class BiLSTMCharCNN(nn.Module):
         n_words: int,
         n_chars: int,
         pretrained_emb: torch.Tensor | None = None,
+        freeze_word_emb: bool = True,
+        use_char_cnn: bool = True,
     ) -> None:
         super().__init__()
+        self.use_char_cnn = use_char_cnn
         self.word_embedding = nn.Embedding(n_words, WORD_EMB_DIM, padding_idx=0)
         if pretrained_emb is not None:
             self.word_embedding.weight.data.copy_(pretrained_emb)
-        self.word_embedding.weight.requires_grad = False  # GloVe frozen (ADR-002)
+        # Freeze only when real GloVe vectors were loaded (ADR-002). Freezing a random
+        # N(0, 0.01) matrix would train the model on frozen noise (comment 012), so a
+        # random-init variant keeps the word channel learnable.
+        self.word_embedding.weight.requires_grad = not freeze_word_emb
 
-        self.char_cnn = _CharCNN(n_chars)
+        self.char_cnn = _CharCNN(n_chars) if use_char_cnn else None
 
         self.lstm = nn.LSTM(
-            LSTM_INPUT_DIM,
+            LSTM_INPUT_DIM if use_char_cnn else LSTM_INPUT_DIM_NO_CHAR,
             LSTM_HIDDEN,
             num_layers=LSTM_LAYERS,
             bidirectional=True,
@@ -70,10 +77,12 @@ class BiLSTMCharCNN(nn.Module):
 
         word_emb = self.word_embedding(word_ids)              # (B, L, 100)
 
-        char_emb = self.char_cnn(char_ids.view(B * L, -1))    # (B*L, 192)
-        char_emb = char_emb.view(B, L, -1)                    # (B, L, 192)
-
-        x = torch.cat([word_emb, char_emb], dim=-1)           # (B, L, 292)
+        if self.use_char_cnn:
+            char_emb = self.char_cnn(char_ids.view(B * L, -1))    # (B*L, 192)
+            char_emb = char_emb.view(B, L, -1)                    # (B, L, 192)
+            x = torch.cat([word_emb, char_emb], dim=-1)           # (B, L, 292)
+        else:
+            x = word_emb                                          # (B, L, 100)
 
         lengths = mask.sum(dim=1).cpu().clamp(min=1)
         packed = nn.utils.rnn.pack_padded_sequence(

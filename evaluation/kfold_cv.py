@@ -307,6 +307,15 @@ def run_kfold_cv(
         solo_row = by_config.get(f"solo_{model}")
         if solo_row is None:
             continue
+        per_label = {
+            label: {
+                f"{metric}_{stat}": solo_row[f"{label}_{metric}_{stat}"]
+                for metric in ("f1", "precision", "recall", "support")
+                for stat in ("mean", "std")
+                if f"{label}_{metric}_{stat}" in solo_row
+            }
+            for label in LABEL_COLS
+        }
         model_summary = {
             "model": model,
             "k": k,
@@ -314,7 +323,13 @@ def run_kfold_cv(
             "inner_dev_frac": inner_dev_frac,
             "n_folds_completed": len(fold_tables),
             "label_cols": LABEL_COLS,
-            "aggregated": solo_row,
+            "aggregated": {
+                "configuration": f"solo_{model}",
+                "macro_f1_mean": solo_row["macro_f1_mean"],
+                "macro_f1_std": solo_row["macro_f1_std"],
+                "per_label": per_label,
+                "n_folds": solo_row["n_folds"],
+            },
             "notes": cv_notes,
         }
         path = _model_summary_path(model)

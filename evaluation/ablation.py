@@ -113,6 +113,9 @@ def run_ablation(
             "ci_lower": ci["lower"],
             "ci_upper": ci["upper"],
             **{f"{label}_f1": per[label]["f1"] for label in LABEL_COLS},
+            **{f"{label}_precision": per[label]["precision"] for label in LABEL_COLS},
+            **{f"{label}_recall": per[label]["recall"] for label in LABEL_COLS},
+            **{f"{label}_support": per[label]["support"] for label in LABEL_COLS},
         }
 
     rows = []

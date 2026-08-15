@@ -19,7 +19,14 @@ import pandas as pd
 # Numeric columns emitted by evaluation.ablation.run_ablation that are worth averaging.
 # ci_lower/ci_upper are per-fold bootstrap bounds and are intentionally dropped — the
 # cross-fold std is the honest dispersion estimate at this level.
-_METRIC_COLS = ["macro_f1", "benign_f1", "PII_f1", "financial_f1", "confidential_f1"]
+_LABELS = ["benign", "PII", "financial", "confidential"]
+_METRIC_COLS = (
+    ["macro_f1"]
+    + [f"{l}_f1" for l in _LABELS]
+    + [f"{l}_precision" for l in _LABELS]
+    + [f"{l}_recall" for l in _LABELS]
+    + [f"{l}_support" for l in _LABELS]
+)
 
 
 def aggregate_folds(fold_dfs: list[pd.DataFrame]) -> pd.DataFrame:

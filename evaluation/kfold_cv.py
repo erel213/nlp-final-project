@@ -46,6 +46,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = REPO_ROOT / "evaluation" / "results" / "kfold"
 SUMMARY_PATH = REPO_ROOT / "evaluation" / "results" / "kfold_cv.json"
 
+
+def _model_summary_path(model: str) -> Path:
+    """Per-model CV summary path, e.g. ``evaluation/results/kfold_cv_bilstm.json``."""
+    return REPO_ROOT / "evaluation" / "results" / f"kfold_cv_{model}.json"
+
 ALL_MODEL_NAMES = ["bert", "roberta", "bilstm", "rule_based"]
 NEURAL_MODELS = ["bert", "roberta", "bilstm"]
 
@@ -288,6 +293,34 @@ def run_kfold_cv(
     else:
         sig = None
 
+    cv_notes = (
+        "CV over ai4privacy train split; validation TEST split untouched. "
+        "Weights fit on inner-dev, evaluated on held-out fold. Paired t-test has "
+        "low power at k=5 and folds are not fully independent — descriptive robustness."
+    )
+
+    # Per-model summary: one file per participating model, holding that model's own
+    # solo CV row (macro-F1 + per-label F1, mean ± std across folds). Keyed by model
+    # so single-model re-runs never clobber each other's results.
+    by_config = {r["configuration"]: r for r in aggregated.to_dict(orient="records")}
+    for model in model_names:
+        solo_row = by_config.get(f"solo_{model}")
+        if solo_row is None:
+            continue
+        model_summary = {
+            "model": model,
+            "k": k,
+            "seed": seed,
+            "inner_dev_frac": inner_dev_frac,
+            "n_folds_completed": len(fold_tables),
+            "label_cols": LABEL_COLS,
+            "aggregated": solo_row,
+            "notes": cv_notes,
+        }
+        path = _model_summary_path(model)
+        path.write_text(json.dumps(model_summary, indent=2))
+        print(f"Per-model summary written to {path}")
+
     summary = {
         "k": k,
         "seed": seed,
@@ -297,13 +330,13 @@ def run_kfold_cv(
         "label_cols": LABEL_COLS,
         "aggregated": aggregated.to_dict(orient="records"),
         "ensemble_vs_best_single": sig,
-        "notes": (
-            "CV over ai4privacy train split; validation TEST split untouched. "
-            "Weights fit on inner-dev, evaluated on held-out fold. Paired t-test has "
-            "low power at k=5 and folds are not fully independent — descriptive robustness."
-        ),
+        "notes": cv_notes,
     }
-    SUMMARY_PATH.write_text(json.dumps(summary, indent=2))
+    # The combined summary carries the ensemble/best_single comparison, which is only
+    # meaningful with ≥2 models. Skip it for single-model runs so we don't overwrite a
+    # real ensemble result with a degenerate one (full_ensemble == best_single == solo).
+    if len(model_names) >= 2:
+        SUMMARY_PATH.write_text(json.dumps(summary, indent=2))
 
     print("\n=== Aggregated (mean ± std across folds) ===")
     print(aggregated.to_string(index=False))
@@ -311,10 +344,11 @@ def run_kfold_cv(
         delta, p = sig["mean_delta"], sig["p_value"]
         p_str = f"{p:.4g}" if p is not None else "n/a"
         print(f"\nfull_ensemble − best_single macro-F1: Δ={delta:+.4f}  paired-t p={p_str}")
+        print(f"Combined summary written to {SUMMARY_PATH}")
     else:
-        print(f"\nSingle-model run ({model_names[0]}) — ensemble-vs-best-single test skipped.")
+        print(f"\nSingle-model run ({model_names[0]}) — ensemble-vs-best-single test skipped; "
+              "combined summary not written.")
     print(f"Total wall time: {_fmt_dur(time.perf_counter() - eta.start)}")
-    print(f"Summary written to {SUMMARY_PATH}")
     return summary
 
 

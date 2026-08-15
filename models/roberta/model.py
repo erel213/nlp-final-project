@@ -15,7 +15,11 @@ _FROZEN_BLOCK_COUNT = 10
 class RobertaForDLPClassification(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        self.roberta = AutoModel.from_pretrained(MODEL_NAME)
+        # eager attention: MPS's scaled_dot_product_attention (the SDPA default)
+        # does not support the dropout applied during training. See lecture-4/6
+        # self-attention — eager computes softmax(QK^T/sqrt(d_k))V explicitly and
+        # supports attention dropout on all backends.
+        self.roberta = AutoModel.from_pretrained(MODEL_NAME, attn_implementation="eager")
         self._freeze_layers()
         self.classifier = nn.Linear(HIDDEN_SIZE, N_LABELS)
 

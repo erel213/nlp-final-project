@@ -27,7 +27,11 @@ class RobertaDLPDetector:
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
         self.model = RobertaForDLPClassification()
-        state = torch.load(checkpoint_path, map_location=self.device, weights_only=True)
+        # Load onto CPU and load_state_dict on CPU (CPU->CPU copy). Moving the
+        # assembled model to MPS afterwards avoids the PyTorch MPS "Unaligned
+        # blit request" bug that fires when copying MPS-resident tensors in
+        # load_state_dict. See Copy.mm:113 INTERNAL ASSERT (destOffset % 4 == 0).
+        state = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
         self.model.load_state_dict(state)
         self.model.to(self.device)
         self.model.eval()

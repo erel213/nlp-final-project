@@ -17,6 +17,7 @@ Design guarantees:
 
 Usage:
     python -m evaluation.kfold_cv [--k 5] [--epochs N] [--device cpu]
+                                  [--models bilstm roberta ...]
                                   [--max-train N] [--max-eval N] [--force]
 """
 
@@ -24,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from argparse import Namespace
 from pathlib import Path
 
@@ -44,8 +46,45 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = REPO_ROOT / "evaluation" / "results" / "kfold"
 SUMMARY_PATH = REPO_ROOT / "evaluation" / "results" / "kfold_cv.json"
 
-MODEL_NAMES = ["bert", "roberta", "bilstm", "rule_based"]
+ALL_MODEL_NAMES = ["bert", "roberta", "bilstm", "rule_based"]
 NEURAL_MODELS = ["bert", "roberta", "bilstm"]
+
+
+def _fmt_dur(seconds: float) -> str:
+    """Human-readable duration, e.g. ``1h03m``, ``12m40s``, ``8.3s``."""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    m, s = divmod(int(seconds), 60)
+    h, m = divmod(m, 60)
+    if h:
+        return f"{h}h{m:02d}m"
+    return f"{m}m{s:02d}s"
+
+
+class _ProgressETA:
+    """Wall-clock progress tracker over ``(fold, model)`` work units.
+
+    ETA is a naive linear extrapolation: mean time per completed unit × units left.
+    Cached units complete near-instantly and pull the mean down, but remaining cached
+    units are equally cheap, so the estimate stays roughly self-consistent. Treat it as
+    an order-of-magnitude hint, not a precise countdown.
+    """
+
+    def __init__(self, total_units: int):
+        self.total = total_units
+        self.done = 0
+        self.start = time.perf_counter()
+
+    def complete_unit(self, label: str) -> None:
+        self.done += 1
+        elapsed = time.perf_counter() - self.start
+        per_unit = elapsed / self.done
+        remaining = per_unit * (self.total - self.done)
+        print(
+            f"    [progress] {label}: {self.done}/{self.total} units done  "
+            f"elapsed {_fmt_dur(elapsed)}  ~{_fmt_dur(remaining)} left  "
+            f"(~{_fmt_dur(per_unit)}/unit)"
+        )
 
 # Per-model training defaults, mirroring each train.py's CLI argparse defaults so the
 # CV runs reproduce the deployed single-model training regime. --epochs overrides all.
@@ -122,15 +161,18 @@ def _model_probas_for_fold(
     train_fit_df,
     inner_dev_df,
     test_fold_df,
+    model_names: list[str],
     epochs_override: int | None,
     device: str,
     force: bool,
+    eta: _ProgressETA,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
-    """Return ``(dev_probas, test_probas)`` for every model on one fold.
+    """Return ``(dev_probas, test_probas)`` for every selected model on one fold.
 
-    Neural models are trained (writing a per-fold checkpoint) unless a cached ``.npy``
-    already exists for the model on this fold; rule-based is scored directly. Every
-    model's dev/test probabilities are cached so a re-run skips completed work.
+    Only the models in ``model_names`` are processed. Neural models are trained (writing a
+    per-fold checkpoint) unless a cached ``.npy`` already exists for the model on this fold;
+    rule-based is scored directly. Every model's dev/test probabilities are cached so a
+    re-run skips completed work. ``eta`` is advanced once per model for progress reporting.
     """
     fold_dir = RESULTS_DIR / f"fold{fold_idx}"
     fold_dir.mkdir(parents=True, exist_ok=True)
@@ -141,7 +183,8 @@ def _model_probas_for_fold(
     dev_probas: dict[str, np.ndarray] = {}
     test_probas: dict[str, np.ndarray] = {}
 
-    for model in MODEL_NAMES:
+    for model in model_names:
+        unit_start = time.perf_counter()
         dev_npy = fold_dir / f"probas_{model}_dev.npy"
         test_npy = fold_dir / f"probas_{model}_test.npy"
 
@@ -149,6 +192,7 @@ def _model_probas_for_fold(
             print(f"[fold {fold_idx}] {model}: cached — loading probabilities.")
             dev_probas[model] = np.load(dev_npy)
             test_probas[model] = np.load(test_npy)
+            eta.complete_unit(f"fold {fold_idx} {model} (cached)")
             continue
 
         if model in NEURAL_MODELS:
@@ -166,6 +210,8 @@ def _model_probas_for_fold(
         np.save(test_npy, test_p)
         dev_probas[model] = dev_p
         test_probas[model] = test_p
+        print(f"[fold {fold_idx}] {model}: done in {_fmt_dur(time.perf_counter() - unit_start)}.")
+        eta.complete_unit(f"fold {fold_idx} {model}")
 
     return dev_probas, test_probas
 
@@ -174,15 +220,30 @@ def run_kfold_cv(
     k: int = 5,
     seed: int = 42,
     inner_dev_frac: float = 0.10,
+    models: list[str] | None = None,
     epochs_override: int | None = None,
     device: str = "cpu",
     max_train: int | None = None,
     max_eval: int | None = None,
     force: bool = False,
 ) -> dict:
-    """Run k-fold CV end-to-end and write the aggregated summary to ``kfold_cv.json``."""
+    """Run k-fold CV end-to-end and write the aggregated summary to ``kfold_cv.json``.
+
+    ``models`` selects which models participate in the whole run (training, scoring,
+    ensemble, and ablation); defaults to all four. Pass a subset (e.g. ``["bilstm"]``) to
+    re-run just those models. Note: with fewer than two models the ensemble collapses to
+    a single model, so the ensemble-vs-best-single test is skipped for that run.
+    """
+    model_names = list(models) if models else list(ALL_MODEL_NAMES)
+    unknown = [m for m in model_names if m not in ALL_MODEL_NAMES]
+    if unknown:
+        raise ValueError(f"Unknown model(s) {unknown}; choose from {ALL_MODEL_NAMES}.")
+
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     fold_tables = []
+    eta = _ProgressETA(total_units=k * len(model_names))
+    print(f"Running k={k} folds over models {model_names} "
+          f"({eta.total} (fold × model) work units total).")
 
     for fold_idx, train_fit_df, inner_dev_df, test_fold_df in load_kfold_splits(
         k=k, seed=seed, inner_dev_frac=inner_dev_frac
@@ -199,7 +260,7 @@ def run_kfold_cv(
 
         dev_probas, test_probas = _model_probas_for_fold(
             fold_idx, train_fit_df, inner_dev_df, test_fold_df,
-            epochs_override, device, force,
+            model_names, epochs_override, device, force, eta,
         )
 
         y_true_dev = from_dataframe(inner_dev_df).astype(int)
@@ -217,15 +278,21 @@ def run_kfold_cv(
         print(ablation_df.to_string(index=False))
 
     aggregated = aggregate_folds(fold_tables)
-    sig = paired_fold_test(
-        fold_scores(fold_tables, "full_ensemble"),
-        fold_scores(fold_tables, "best_single"),
-    )
+    # With a single model the ensemble IS that model, so full_ensemble == best_single and
+    # the paired test is meaningless — skip it rather than emit a degenerate p-value.
+    if len(model_names) >= 2:
+        sig = paired_fold_test(
+            fold_scores(fold_tables, "full_ensemble"),
+            fold_scores(fold_tables, "best_single"),
+        )
+    else:
+        sig = None
 
     summary = {
         "k": k,
         "seed": seed,
         "inner_dev_frac": inner_dev_frac,
+        "models": model_names,
         "n_folds_completed": len(fold_tables),
         "label_cols": LABEL_COLS,
         "aggregated": aggregated.to_dict(orient="records"),
@@ -240,9 +307,13 @@ def run_kfold_cv(
 
     print("\n=== Aggregated (mean ± std across folds) ===")
     print(aggregated.to_string(index=False))
-    delta, p = sig["mean_delta"], sig["p_value"]
-    p_str = f"{p:.4g}" if p is not None else "n/a"
-    print(f"\nfull_ensemble − best_single macro-F1: Δ={delta:+.4f}  paired-t p={p_str}")
+    if sig is not None:
+        delta, p = sig["mean_delta"], sig["p_value"]
+        p_str = f"{p:.4g}" if p is not None else "n/a"
+        print(f"\nfull_ensemble − best_single macro-F1: Δ={delta:+.4f}  paired-t p={p_str}")
+    else:
+        print(f"\nSingle-model run ({model_names[0]}) — ensemble-vs-best-single test skipped.")
+    print(f"Total wall time: {_fmt_dur(time.perf_counter() - eta.start)}")
     print(f"Summary written to {SUMMARY_PATH}")
     return summary
 
@@ -252,6 +323,10 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--inner-dev-frac", type=float, default=0.10)
+    parser.add_argument("--models", nargs="+", choices=ALL_MODEL_NAMES, default=None,
+                        metavar="MODEL",
+                        help="Subset of models to run (default: all four). "
+                             "E.g. --models bilstm. With <2 models the ensemble test is skipped.")
     parser.add_argument("--epochs", type=int, default=None,
                         help="Override every neural model's epoch count (for fast smoke runs).")
     parser.add_argument("--device", default="cpu")
@@ -267,6 +342,7 @@ def main() -> None:
         k=args.k,
         seed=args.seed,
         inner_dev_frac=args.inner_dev_frac,
+        models=args.models,
         epochs_override=args.epochs,
         device=args.device,
         max_train=args.max_train,

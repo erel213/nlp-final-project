@@ -12,6 +12,25 @@ from .metrics import bootstrap_ci, compute_all_metrics
 
 LABEL_COLS: list[str] = ["benign", "PII", "financial", "confidential"]
 
+# A threshold may be a single float applied to every label, or a per-label
+# mapping ``{label: float}`` (e.g. the ensemble's DEV-tuned per-label
+# thresholds). Both forms are accepted everywhere ``threshold`` appears.
+Threshold = float | dict[str, float]
+
+
+def _threshold_vector(threshold: Threshold) -> np.ndarray:
+    """Normalize a scalar-or-per-label threshold into a ``(len(LABEL_COLS),)`` vector.
+
+    - ``float`` → same value broadcast to every label (backward compatible).
+    - ``dict`` → looked up per label in ``LABEL_COLS`` order; a missing label
+      defaults to 0.5.
+    """
+    if isinstance(threshold, dict):
+        return np.array(
+            [float(threshold.get(label, 0.5)) for label in LABEL_COLS], dtype=float
+        )
+    return np.full(len(LABEL_COLS), float(threshold), dtype=float)
+
 
 def load_weights(weights_path: str | Path) -> dict[str, dict[str, float]]:
     path = Path(weights_path)
@@ -27,8 +46,14 @@ def load_weights(weights_path: str | Path) -> dict[str, dict[str, float]]:
 def fuse(
     model_probas: dict[str, np.ndarray],
     weights: dict[str, dict[str, float]],
-    threshold: float = 0.5,
+    threshold: Threshold = 0.5,
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Confidence-weighted late fusion.
+
+    ``threshold`` accepts either a single float applied to every label, or a
+    per-label mapping ``{label: float}`` (e.g. the DEV-tuned per-label
+    thresholds); the per-label form is applied column-wise.
+    """
     model_names = list(model_probas)
     n = next(iter(model_probas.values())).shape[0]
     y_proba_fused = np.zeros((n, len(LABEL_COLS)), dtype=float)
@@ -42,7 +67,8 @@ def fuse(
         if total_weight > 0:
             y_proba_fused[:, col_i] /= total_weight
 
-    y_pred = (y_proba_fused >= threshold).astype(int)
+    thr = _threshold_vector(threshold)
+    y_pred = (y_proba_fused >= thr).astype(int)
     return y_pred, y_proba_fused
 
 
@@ -60,10 +86,17 @@ def run_ablation(
     model_probas: dict[str, np.ndarray],
     weights: dict[str, dict[str, float]],
     y_true: np.ndarray,
-    threshold: float = 0.5,
+    threshold: Threshold = 0.5,
     n_bootstrap: int = 1000,
     random_state: int = 42,
 ) -> pd.DataFrame:
+    """Leave-one-out / solo ablation table.
+
+    ``threshold`` accepts a float or a per-label ``{label: float}`` mapping; the
+    SAME threshold rule is applied to the full ensemble, the leave-one-out
+    configs, and the solo/best-single configs, so all rows are judged under one
+    common decision rule (keeps RQ1 apples-to-apples — see comment 010/017).
+    """
     y_true = np.asarray(y_true, dtype=int)
 
     def _macro_f1(yt: np.ndarray, yp: np.ndarray) -> float:
@@ -164,7 +197,7 @@ def ensemble_vs_best_single(
     model_probas: dict[str, np.ndarray],
     weights: dict[str, dict[str, float]],
     y_true: np.ndarray,
-    threshold: float = 0.5,
+    threshold: Threshold = 0.5,
     n_resamples: int = 1000,
     confidence: float = 0.95,
     random_state: int = 42,
@@ -176,6 +209,10 @@ def ensemble_vs_best_single(
     ``paired_bootstrap_delta`` on (ensemble - best_single) macro-F1 using one set
     of resample indices per draw. The RQ1 improvement claim holds only when the
     returned delta CI excludes 0 (``significant`` True).
+
+    ``threshold`` accepts a float or a per-label ``{label: float}`` mapping and
+    is applied identically to BOTH the ensemble and the solo models, so the RQ1
+    delta is measured under one common decision rule.
 
     Returns the ``paired_bootstrap_delta`` dict augmented with
     ``best_single_model``, ``ensemble_macro_f1`` and ``best_single_macro_f1``.

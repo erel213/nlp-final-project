@@ -1,0 +1,28 @@
+{
+  "model": "roberta",
+  "k": 5,
+  "seed": 42,
+  "inner_dev_frac": 0.1,
+  "n_folds_completed": 5,
+  "label_cols": [
+    "benign",
+    "PII",
+    "financial",
+    "confidential"
+  ],
+  "aggregated": {
+    "configuration": "solo_roberta",
+    "macro_f1_mean": 0.9490997000233061,
+    "macro_f1_std": 0.0026100957719219064,
+    "benign_f1_mean": 0.9044758222700114,
+    "benign_f1_std": 0.008884409249087706,
+    "PII_f1_mean": 0.9852716276362232,
+    "PII_f1_std": 0.001463478699768874,
+    "financial_f1_mean": 0.9351611071869865,
+    "financial_f1_std": 0.003636744016052796,
+    "confidential_f1_mean": 0.9714902430000034,
+    "confidential_f1_std": 0.0018474069254553404,
+    "n_folds": 5
+  },
+  "notes": "CV over ai4privacy train split; validation TEST split untouched. Weights fit on inner-dev, evaluated on held-out fold. Paired t-test has low power at k=5 and folds are not fully independent \u2014 descriptive robustness."
+}

@@ -72,12 +72,23 @@ weights for each category, so that a model can be trusted more for one
 category and less for another. This weighting scheme is a standard
 technique from the classifier-combination literature
 \citep{kittler1998combining, kuncheva2004combining}, and we do not
-present it as new. The contribution of this work lies elsewhere: the
-learned weights, together with an ablation that removes one model at a
-time, reveal which model each sensitivity category actually depends on,
-and by how much. In other words, we use a standard ensemble to produce
-an empirical map of model complementarity across sensitivity
-categories.
+present it as new.
+
+\paragraph{Contribution and novelty.}
+Prior work has already formulated privacy-disclosure detection as
+multi-label text classification, and per-class weighted fusion is also
+an established ensemble technique. Our contribution is therefore
+empirical rather than algorithmic. First, we reformulate the entity-level
+annotations in \texttt{pii-masking-300k} as a category-level,
+multi-label sensitive-sentence classification task. Second, we evaluate
+pattern-aware, character-aware, and context-aware model families under a
+common protocol. Third, we use category-specific fusion weights and
+leave-one-model-out analysis as diagnostic tools for measuring where
+these heterogeneous model families complement one another. This design
+allows the study to ask not only whether an ensemble wins on an aggregate
+metric, but also which types of sensitive information benefit from each
+model family and whether the added complexity is justified when a strong
+transformer already performs near the benchmark ceiling.
 
 \subsection{Related Work}
 
@@ -94,6 +105,22 @@ sensitive-information extraction \citep{guo2021exsense}. Transformer
 models \citep{devlin2019bert, liu2019roberta} have also shown strong
 performance in sensitive-data detection and classification, including
 BERT-based anonymization of clinical text \citep{garciapablos2020bert}.
+
+Privacy-disclosure detection has also been studied explicitly as a
+multi-label text-classification problem. Song et al.\ introduced a
+taxonomy-guided framework and a dataset of social-media posts annotated
+with 32 privacy-related personal aspects \citep{song2018personal}.
+Chen et al.\ subsequently modeled label co-occurrence using a
+graph-regularized hierarchical attention network
+\citep{chen2020finegrained}. More recently, Liang et al.\ combined
+BiLSTM representations, label-specific attention, and a graph
+convolutional network to model both text--label and label--label
+relationships \citep{liang2024doubleattention}. These studies establish
+that multi-label privacy classification is not itself new. In contrast,
+our study focuses on complementarity across heterogeneous detector
+families---rules, character-aware neural representations, and
+transformers---rather than learning label correlations inside a single
+neural architecture.
 
 Combining classifiers to exploit their complementary behavior is a
 classical topic. Weighted soft voting and linear opinion pooling date
@@ -405,12 +432,148 @@ decisions reported in the Introduction.
 \section{Discussion}
 \label{sec:discussion}
 
-% TODO: write after results are final. Planned content:
-%   - Answer RQ1 honestly (gain over RoBERTa may be small / not significant).
-%   - Answer RQ2 via weights + ablation (category-dependent reliance).
-%   - Limitations: synthetic non-email data (external validity), derived labels,
-%     small per-category DEV support, descoped health/LLM/robustness items.
-%   - Process insights: evaluation-protocol pitfalls found and fixed.
+\subsection{Does the ensemble improve over the best individual model?}
+
+The aggregate results provide a qualified answer to RQ1. The weighted
+ensemble obtains the highest point estimate, but its advantage over
+RoBERTa is less than one macro-F1 percentage point. The main result is
+therefore not a large performance improvement. Instead, it shows that a
+strong contextual transformer already captures most of the predictive
+signal available in this benchmark, leaving limited room for a more
+complex heterogeneous ensemble. Because the absolute difference is
+small, it should not be described as practically or statistically
+meaningful unless the paired-bootstrap comparison confirms such a
+claim. Our conservative interpretation is that the ensemble provides a
+modest numerical improvement, but the experiment does not support the
+stronger claim that heterogeneous fusion is generally superior to a
+well-tuned RoBERTa classifier.
+
+This negative or near-null result is informative. Ensemble methods are
+often motivated by the assumption that their members make sufficiently
+different errors. Here, BERT and RoBERTa are closely related contextual
+models, while the simpler detectors may not be accurate enough to alter
+many of RoBERTa's decisions. Under these conditions, adding members
+increases training, inference, and maintenance cost without producing a
+commensurate aggregate gain. For deployment on data similar to this
+benchmark, RoBERTa alone may therefore offer a better
+performance--complexity trade-off.
+
+\subsection{Category-specific complementarity}
+
+RQ2 reveals a more nuanced result. The learned fusion weights are not
+uniform across categories. RoBERTa receives approximately 0.8 of the
+weight for both benign and general PII predictions, showing that these
+decisions are dominated by contextual representations. For financial
+information, however, the weight is distributed across RoBERTa
+(approximately 0.52), the rule-based detector (0.29), and the BiLSTM
+(0.19). This is consistent with the nature of financial identifiers:
+many have recognizable surface structure, so regular expressions and
+character-level features can provide signals that complement contextual
+modeling. For confidential information, RoBERTa remains dominant, while
+BERT and the rule-based detector retain smaller contributions.
+
+The category-specific weights should be interpreted as evidence about
+the fitted ensemble, not as a causal measure of model importance. A
+model can receive a small weight because its predictions are redundant
+with another model, rather than because it contains no useful signal.
+For this reason, the leave-one-model-out ablation is an important
+companion analysis: the complementarity claim is strongest only where
+removing a member measurably reduces performance. Even with this
+caution, the weight pattern supports the central empirical contribution
+of the project: complementarity between detector families varies by
+sensitivity category, and it is more visible for structured financial
+information than for general PII.
+
+\subsection{Why are the scores so high?}
+
+The strong RoBERTa and ensemble results should be interpreted in light
+of the dataset. \texttt{pii-masking-300k} is synthetic and was generated
+to contain annotated PII spans. Synthetic generation can produce
+repeated templates, regular lexical cues, and similar combinations of
+context and entity types across the training and evaluation splits.
+Consequently, a transformer may learn dataset-specific regularities
+rather than the full variety of sensitive disclosures encountered in
+practice. The high scores may therefore indicate that the benchmark is
+close to saturation for this formulation, rather than that the real DLP
+problem has been solved.
+
+Our label construction can further simplify the task. The general PII
+label is activated by every annotated sensitive entity, while financial
+and confidential are derived subcategories and benign is mutually
+exclusive with all sensitive labels. The four outputs are therefore not
+independent: financial and confidential examples are normally also PII,
+and benign can often be inferred from the absence of the other labels.
+These deterministic relationships may help a model obtain high
+multi-label scores. In addition, the source annotations focus on direct
+identifiers. They provide less controlled coverage of difficult
+phenomena such as negation, hypothetical references, implicit
+disclosure, deliberate obfuscation, or mentions of a sensitive concept
+that do not disclose an actual value.
+
+\subsection{Limitations and external validity}
+
+The main limitation is external validity. Although organizational email
+DLP motivates the project, the evaluated texts are short synthetic
+sentences rather than real emails. They do not reproduce subject lines,
+quoted conversations, signatures, attachments, long-range discourse,
+organization-specific terminology, or the difference between an
+identifier being discussed and actually being disclosed. Results on
+this benchmark therefore cannot be presented as evidence of production
+performance on organizational communication.
+
+The experiments are also restricted to English and to the categories
+that can be derived from the available annotations. Health information,
+which was part of the initial project scope, was removed because the
+dataset did not provide sufficient ground truth for a meaningful
+evaluation. Annotation errors or missing spans in the synthetic source
+may also affect both training and evaluation. Finally, tuning separate
+weights and thresholds for each category introduces additional degrees
+of freedom and a risk of fitting idiosyncrasies of the development set,
+especially for less frequent categories.
+
+\subsection{Implications and future work}
+
+Future evaluation should prioritize distribution shift rather than only
+further optimization on the same benchmark. A stronger test would use
+realistic email-like documents and controlled challenge sets containing
+format variation, character substitutions, spacing changes, negation,
+hypothetical statements, and indirect disclosures. Evaluation on an
+independent corpus would show whether the rule-based and character-aware
+members become more valuable when the transformer encounters unfamiliar
+language or entity formats. It would also clarify whether the small
+in-distribution gain from fusion translates into improved robustness.
+
+Future work could additionally compare the fixed per-category weights
+with simpler equal-weight voting and with an input-dependent gating
+model. Such extensions should be evaluated against their computational
+cost and with a strictly separated development set. The purpose would
+not merely be to increase a benchmark score, but to determine when the
+added ensemble complexity provides reliable protection under realistic
+DLP conditions.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This project compared rule-based, character-aware, and contextual
+approaches to multi-label sensitive-sentence classification and combined
+them using category-specific weighted late fusion. RoBERTa was the
+strongest individual model and the ensemble achieved only a small
+additional improvement. We therefore do not conclude that an ensemble
+is universally better than a strong transformer. Instead, our main
+contribution is a unified empirical analysis of heterogeneous model
+complementarity: contextual models dominate the benchmark overall,
+while structured financial information shows the clearest contribution
+from rule-based and character-aware signals.
+
+The high scores must be understood as results on a synthetic,
+sentence-level benchmark with derived and partially hierarchical labels.
+They do not demonstrate that sensitive information can be detected with
+the same reliability in real organizational email. The findings suggest
+both a practical conclusion and a research direction: on familiar
+in-distribution data, a single strong transformer may be sufficient,
+whereas the value of heterogeneous fusion should be tested primarily
+under realistic domain shift, obfuscation, and context-dependent
+disclosure.
 
 \section{Code}
 

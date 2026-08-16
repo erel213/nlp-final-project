@@ -1,0 +1,62 @@
+{
+  "model": "bert",
+  "k": 5,
+  "seed": 42,
+  "inner_dev_frac": 0.1,
+  "n_folds_completed": 5,
+  "label_cols": [
+    "benign",
+    "PII",
+    "financial",
+    "confidential"
+  ],
+  "aggregated": {
+    "configuration": "solo_bert",
+    "macro_f1_mean": 0.9427921715240959,
+    "macro_f1_std": 0.0031012363111880504,
+    "per_label": {
+      "benign": {
+        "f1_mean": 0.8951882166083864,
+        "f1_std": 0.008179887563811147,
+        "precision_mean": 0.8357564666964639,
+        "precision_std": 0.010780282946308185,
+        "recall_mean": 0.963819901383598,
+        "recall_std": 0.010495100969595187,
+        "support_mean": 696.4,
+        "support_std": 0.5477225575051635
+      },
+      "PII": {
+        "f1_mean": 0.9837936047122758,
+        "f1_std": 0.00172811020013762,
+        "precision_mean": 0.9949307376836449,
+        "precision_std": 0.0013513482957335664,
+        "recall_mean": 0.9729053772285801,
+        "recall_std": 0.002627718465239644,
+        "support_mean": 5285.2,
+        "support_std": 0.44721359549988166
+      },
+      "financial": {
+        "f1_mean": 0.9263037201939802,
+        "f1_std": 0.006003148921945908,
+        "precision_mean": 0.9027707109740568,
+        "precision_std": 0.008755068535579016,
+        "recall_mean": 0.9511258159402616,
+        "recall_std": 0.004750734573774824,
+        "support_mean": 1137.6,
+        "support_std": 0.5477225575051375
+      },
+      "confidential": {
+        "f1_mean": 0.9658831445817414,
+        "f1_std": 0.003509044761614702,
+        "precision_mean": 0.956497029003194,
+        "precision_std": 0.0024133861522101113,
+        "recall_mean": 0.9754752567560836,
+        "recall_std": 0.006590472065132485,
+        "support_mean": 2650.4,
+        "support_std": 0.5477225575051765
+      }
+    },
+    "n_folds": 5
+  },
+  "notes": "CV over ai4privacy train split; validation TEST split untouched. Weights fit on inner-dev, evaluated on held-out fold. Paired t-test has low power at k=5 and folds are not fully independent \u2014 descriptive robustness."
+}

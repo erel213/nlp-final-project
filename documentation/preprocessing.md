@@ -28,6 +28,8 @@ The project uses a **4-label multi-label schema**. A text/sentence can belong to
 
 `benign` is mutually exclusive with the other three — if any entity is found, `benign = 0`. `financial` and `confidential` are subsets of `PII`: whenever either fires, `PII = 1` as well.
 
+**Metric note (comment 011):** because `benign` is definitionally the complement of "any entity present" (`benign = 1 - PII` at the row level), its F1 mirrors `PII` F1. Averaging it into the headline macro-F1 would double-count a redundant, high-support category and inflate the metric. The **headline macro-F1 therefore averages only the informative categories `{PII, financial, confidential}`** (`evaluation.metrics.MACRO_LABELS`). `benign` is still reported per-label for transparency but is excluded from every headline / RQ1 / CV macro-F1.
+
 `health` was removed from scope: `ai4privacy/pii-masking-300k` contains no health-related entity types, making the label untrainable and unevaluable.
 
 ---

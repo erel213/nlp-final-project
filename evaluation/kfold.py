@@ -19,6 +19,12 @@ import pandas as pd
 # Numeric columns emitted by evaluation.ablation.run_ablation that are worth averaging.
 # ci_lower/ci_upper are per-fold bootstrap bounds and are intentionally dropped — the
 # cross-fold std is the honest dispersion estimate at this level.
+#
+# NOTE: the ``macro_f1`` column averaged here is already the informative-only headline
+# macro-F1 (PII/financial/confidential; benign excluded — see
+# evaluation.metrics.MACRO_LABELS and comment 011), because it is produced upstream by
+# run_ablation. per-label columns below still cover all four labels for transparency,
+# including benign, but benign is NOT part of the aggregated headline macro_f1.
 _LABELS = ["benign", "PII", "financial", "confidential"]
 _METRIC_COLS = (
     ["macro_f1"]

@@ -1,26 +1,26 @@
 {
   "bert": {
-    "benign": 0.09615384615384616,
-    "PII": 0.1,
-    "financial": 0.00018676461433107144,
-    "confidential": 0.3
-  },
-  "roberta": {
-    "benign": 0.8076923076923077,
+    "benign": 0.6965174129353234,
     "PII": 0.8,
-    "financial": 0.5167154329826308,
-    "confidential": 0.5
-  },
-  "bilstm": {
-    "benign": 0.09615384615384616,
-    "PII": 0.1,
-    "financial": 0.19174500404656672,
+    "financial": 0.2,
     "confidential": 0.0
   },
-  "rule_based": {
-    "benign": 0.0,
+  "roberta": {
+    "benign": 0.09950248756218907,
     "PII": 0.0,
-    "financial": 0.2913527983564713,
-    "confidential": 0.2
+    "financial": 0.0,
+    "confidential": 0.5121951219512194
+  },
+  "bilstm": {
+    "benign": 0.10447761194029853,
+    "PII": 0.1,
+    "financial": 0.5,
+    "confidential": 0.39024390243902435
+  },
+  "rule_based": {
+    "benign": 0.09950248756218907,
+    "PII": 0.1,
+    "financial": 0.3,
+    "confidential": 0.09756097560975609
   }
 }

@@ -1,0 +1,210 @@
+{
+  "oracle_gap": [
+    {
+      "label": "benign",
+      "best_single_model": "bert",
+      "best_single_acc": 0.9840171155298263,
+      "oracle_acc": 0.9950918701233324,
+      "oracle_gap": 0.011074754593506153
+    },
+    {
+      "label": "PII",
+      "best_single_model": "bert",
+      "best_single_acc": 0.9822552227535867,
+      "oracle_acc": 0.9942109237352127,
+      "oracle_gap": 0.011955700981626016
+    },
+    {
+      "label": "financial",
+      "best_single_model": "roberta",
+      "best_single_acc": 0.9794865341052101,
+      "oracle_acc": 0.9928265794110244,
+      "oracle_gap": 0.01334004530581423
+    },
+    {
+      "label": "confidential",
+      "best_single_model": "roberta",
+      "best_single_acc": 0.9781021897810219,
+      "oracle_acc": 0.9949660206393154,
+      "oracle_gap": 0.01686383085829346
+    }
+  ],
+  "error_overlap": {
+    "PII": {
+      "bert": {
+        "bert": 1.0,
+        "roberta": 0.4077669902912621,
+        "bilstm": 0.2430379746835443,
+        "rule_based": 0.09378663540445487
+      },
+      "roberta": {
+        "bert": 0.4077669902912621,
+        "roberta": 1.0,
+        "bilstm": 0.21707317073170732,
+        "rule_based": 0.09929906542056074
+      },
+      "bilstm": {
+        "bert": 0.2430379746835443,
+        "roberta": 0.21707317073170732,
+        "bilstm": 1.0,
+        "rule_based": 0.14543630892678033
+      },
+      "rule_based": {
+        "bert": 0.09378663540445487,
+        "roberta": 0.09929906542056074,
+        "bilstm": 0.14543630892678033,
+        "rule_based": 1.0
+      }
+    },
+    "financial": {
+      "bert": {
+        "bert": 1.0,
+        "roberta": 0.38652482269503546,
+        "bilstm": 0.2113022113022113,
+        "rule_based": 0.09498399146211313
+      },
+      "roberta": {
+        "bert": 0.38652482269503546,
+        "roberta": 1.0,
+        "bilstm": 0.22988505747126436,
+        "rule_based": 0.11614401858304298
+      },
+      "bilstm": {
+        "bert": 0.2113022113022113,
+        "roberta": 0.22988505747126436,
+        "bilstm": 1.0,
+        "rule_based": 0.09700722394220847
+      },
+      "rule_based": {
+        "bert": 0.09498399146211313,
+        "roberta": 0.11614401858304298,
+        "bilstm": 0.09700722394220847,
+        "rule_based": 1.0
+      }
+    },
+    "confidential": {
+      "bert": {
+        "bert": 1.0,
+        "roberta": 0.484251968503937,
+        "bilstm": 0.2916666666666667,
+        "rule_based": 0.06701030927835051
+      },
+      "roberta": {
+        "bert": 0.484251968503937,
+        "roberta": 1.0,
+        "bilstm": 0.2447058823529412,
+        "rule_based": 0.05654761904761905
+      },
+      "bilstm": {
+        "bert": 0.2916666666666667,
+        "roberta": 0.2447058823529412,
+        "bilstm": 1.0,
+        "rule_based": 0.10566298342541436
+      },
+      "rule_based": {
+        "bert": 0.06701030927835051,
+        "roberta": 0.05654761904761905,
+        "bilstm": 0.10566298342541436,
+        "rule_based": 1.0
+      }
+    }
+  },
+  "unique_contribution": [
+    {
+      "label": "benign",
+      "model": "bert",
+      "exclusive_correct": 13,
+      "exclusive_frac": 0.0016360432922225018
+    },
+    {
+      "label": "benign",
+      "model": "roberta",
+      "exclusive_correct": 22,
+      "exclusive_frac": 0.0027686886483765417
+    },
+    {
+      "label": "benign",
+      "model": "bilstm",
+      "exclusive_correct": 10,
+      "exclusive_frac": 0.0012584948401711553
+    },
+    {
+      "label": "benign",
+      "model": "rule_based",
+      "exclusive_correct": 15,
+      "exclusive_frac": 0.001887742260256733
+    },
+    {
+      "label": "PII",
+      "model": "bert",
+      "exclusive_correct": 12,
+      "exclusive_frac": 0.0015101938082053865
+    },
+    {
+      "label": "PII",
+      "model": "roberta",
+      "exclusive_correct": 19,
+      "exclusive_frac": 0.002391140196325195
+    },
+    {
+      "label": "PII",
+      "model": "bilstm",
+      "exclusive_correct": 8,
+      "exclusive_frac": 0.0010067958721369243
+    },
+    {
+      "label": "PII",
+      "model": "rule_based",
+      "exclusive_correct": 17,
+      "exclusive_frac": 0.002139441228290964
+    },
+    {
+      "label": "financial",
+      "model": "bert",
+      "exclusive_correct": 12,
+      "exclusive_frac": 0.0015101938082053865
+    },
+    {
+      "label": "financial",
+      "model": "roberta",
+      "exclusive_correct": 4,
+      "exclusive_frac": 0.0005033979360684622
+    },
+    {
+      "label": "financial",
+      "model": "bilstm",
+      "exclusive_correct": 21,
+      "exclusive_frac": 0.002642839164359426
+    },
+    {
+      "label": "financial",
+      "model": "rule_based",
+      "exclusive_correct": 11,
+      "exclusive_frac": 0.0013843443241882709
+    },
+    {
+      "label": "confidential",
+      "model": "bert",
+      "exclusive_correct": 6,
+      "exclusive_frac": 0.0007550969041026932
+    },
+    {
+      "label": "confidential",
+      "model": "roberta",
+      "exclusive_correct": 18,
+      "exclusive_frac": 0.0022652907123080794
+    },
+    {
+      "label": "confidential",
+      "model": "bilstm",
+      "exclusive_correct": 17,
+      "exclusive_frac": 0.002139441228290964
+    },
+    {
+      "label": "confidential",
+      "model": "rule_based",
+      "exclusive_correct": 45,
+      "exclusive_frac": 0.005663226780770199
+    }
+  ]
+}

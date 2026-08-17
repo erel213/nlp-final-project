@@ -1,0 +1,10 @@
+{
+  "param_counts": {
+    "rule_based": 0,
+    "bert": 109485316,
+    "roberta": 124648708,
+    "bilstm": 7076284
+  },
+  "ensemble_total_params": 241210308,
+  "note": "ensemble runs all members; inference cost ~= sum of members, dominated by the two transformers. RQ1 gain over best single is not significant."
+}

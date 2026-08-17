@@ -8,6 +8,8 @@
 \usepackage{natbib}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage[hidelinks]{hyperref}
 
 \begin{document}
 
@@ -49,7 +51,8 @@ linguistic context surrounding them.
 
 While email DLP is the motivating application, we emphasize that it is
 not the evaluated task. All quantitative results in this report are
-obtained on the \texttt{ai4privacy/pii-masking-300k} dataset, a corpus
+obtained on the \path{ai4privacy/pii-masking-300k} dataset
+\citep{ai4privacy2024}, a corpus
 of short synthetic PII-bearing sentences. This text lacks the
 characteristic structure of real email (subject lines, threading,
 quoting, signatures), so our results measure sensitive-\emph{sentence}
@@ -164,7 +167,7 @@ complete solution consists of the following stages:
 \begin{enumerate}
     \item \textbf{Data Preparation:}
     We load the English subset of the
-    \texttt{ai4privacy/pii-masking-300k} dataset and derive
+    \path{ai4privacy/pii-masking-300k} dataset and derive
     text-level labels from its annotated sensitive entities.
 
     \item \textbf{Exploratory Data Analysis:}
@@ -302,10 +305,10 @@ that do not appear in a standard word vocabulary.
 \label{subsubsec:transformers}
 
 BERT \citep{devlin2019bert} and RoBERTa \citep{liu2019roberta}
-represent the context-aware components of the system. Texts are
-tokenized using each model's native tokenizer
-(\texttt{bert-base-uncased} WordPiece and \texttt{roberta-base} BPE,
-respectively) and truncated to a maximum of 512 tokens.
+represent the context-aware components of the system. Each model uses
+its native tokenizer: BERT uses \path{bert-base-uncased} WordPiece,
+whereas RoBERTa uses \path{roberta-base} BPE. Inputs are truncated to a
+maximum of 512 tokens.
 
 Both models use the contextual representation of the initial
 classification token as a text-level representation. This
@@ -613,10 +616,10 @@ disclosure.
 
 \section{Code}
 
-% TODO: insert repository link once the submission location is decided.
 The complete implementation, training and evaluation notebooks
 (data exploration, one notebook per model, and the ensemble), and all
-result artifacts are available at: \texttt{<repository link>}.
+result artifacts are available at:
+\url{https://github.com/erel213/nlp-final-project}.
 
 \bibliographystyle{plain}
 \bibliography{references}

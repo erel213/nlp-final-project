@@ -1,8 +1,10 @@
 """Compute trivial baselines + a consolidated per-class comparison table.
 
 Answers reviewer comment 004. All numbers are on the TEST split (ai4privacy
-``validation``, English) using the ALREADY-CACHED model probabilities in
-``ensemble/cache/`` — no re-inference, no GPU, no retraining.
+``validation``, English). Model probabilities are computed fresh via
+``ensemble.probas.compute_probas`` (the on-disk proba cache was removed —
+correctness by construction over cached-but-possibly-stale). No retraining;
+expect BERT/RoBERTa inference wall-clock. Pass ``--device mps`` to speed it up.
 
 Outputs:
   * evaluation/results/majority_metrics.json
@@ -22,7 +24,7 @@ from pathlib import Path
 import numpy as np
 
 from data.preprocessing import load_split
-from ensemble.cache_probas import load_probas
+from ensemble.probas import compute_probas
 from evaluation import (
     LABEL_COLS,
     compute_all_metrics,
@@ -63,9 +65,9 @@ def _fuse_with_per_label_thresholds(model_probas, weights, thresholds):
     return y_pred, fused
 
 
-def main() -> None:
-    # 1. Load aligned cached probabilities, y_true, and TEST texts.
-    model_probas, y_true, texts = load_probas("validation")
+def main(device: str = "cpu") -> None:
+    # 1. Compute aligned model probabilities, y_true, and TEST texts (fresh inference).
+    model_probas, y_true, texts = compute_probas("validation", device=device)
     n = len(texts)
     print(f"[baselines] TEST split loaded: n={n}")
 
@@ -185,4 +187,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Baselines + per-class comparison table.")
+    parser.add_argument("--device", default="cpu")
+    main(device=parser.parse_args().device)

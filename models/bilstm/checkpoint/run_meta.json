@@ -1,0 +1,11 @@
+{
+  "glove_loaded": true,
+  "use_char_cnn": true,
+  "freeze_word_emb": true,
+  "word_emb_dim": 100,
+  "vocab_size": 40401,
+  "epochs": 20,
+  "batch_size": 64,
+  "lr": 0.001,
+  "checkpoint": "/Users/erelv/projects-chkp/final-project/models/bilstm/checkpoint/best_model.pt"
+}

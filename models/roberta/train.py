@@ -65,8 +65,8 @@ def fit(
 
     ``val_df`` is the selection/DEV partition (early stopping only) — never a TEST
     split. Writes the best checkpoint to ``ckpt_path`` and returns
-    ``(ckpt_path, best_val_macro_f1)``. Shared by the CLI ``train`` and the k-fold
-    orchestrator so their training regimes are identical.
+    ``(ckpt_path, best_val_macro_f1)``. Shared by the CLI entry point, the training
+    notebook, and the k-fold orchestrator so their training regimes are identical.
     """
     ckpt_path = Path(ckpt_path)
     ckpt_path.parent.mkdir(parents=True, exist_ok=True)
@@ -162,7 +162,13 @@ def fit(
     return ckpt_path, best_val_f1
 
 
-def train(args: argparse.Namespace) -> None:
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--lr", type=float, default=2e-5)
+    args = parser.parse_args()
+
     print("Loading data...")
     # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
     # `train` (per .claude/rules/model-roberta.md ADR-005 / model-bert.md). The
@@ -170,11 +176,3 @@ def train(args: argparse.Namespace) -> None:
     # only — never read here.
     train_df, val_df = load_train_holdout(frac=0.10, seed=42)
     fit(train_df, val_df, args, CHECKPOINT_DIR / "best_model.pt")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=2e-5)
-    train(parser.parse_args())

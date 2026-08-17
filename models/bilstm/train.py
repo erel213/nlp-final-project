@@ -98,8 +98,8 @@ def fit(
     A fresh ``Vocabulary`` is built from ``train_df`` and saved as ``vocab.json`` next
     to ``ckpt_path`` (its ``predict.py`` needs the matching vocab). ``val_df`` is the
     selection/DEV partition (early stopping only) — never a TEST split. Returns
-    ``(ckpt_path, best_val_loss)``. Shared by the CLI ``train`` and the k-fold
-    orchestrator so their training regimes are identical.
+    ``(ckpt_path, best_val_loss)``. Shared by the CLI entry point, the training
+    notebook, and the k-fold orchestrator so their training regimes are identical.
 
     Recognised optional ``args`` attributes (default to the specified design when
     absent): ``allow_random_init`` (bool) opts into a random-init word channel when
@@ -224,19 +224,6 @@ def fit(
     return ckpt_path, best_val_loss
 
 
-def train(args: argparse.Namespace) -> None:
-    print("Loading data...")
-    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
-    # `train`. The `validation` split is reserved untouched as the TEST set for
-    # final reporting only — never read here.
-    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
-    # The no-char-CNN ablation writes to a separate checkpoint dir so it never
-    # clobbers the deployed full model.
-    ckpt = CHECKPOINT_DIR / ("best_model_no_charcnn.pt" if not args.use_char_cnn
-                             else "best_model.pt")
-    fit(train_df, val_df, args, ckpt)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=20)
@@ -253,4 +240,15 @@ if __name__ == "__main__":
              "with/without-char-CNN comparison.",
     )
     parser.set_defaults(use_char_cnn=True)
-    train(parser.parse_args())
+    args = parser.parse_args()
+
+    print("Loading data...")
+    # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
+    # `train`. The `validation` split is reserved untouched as the TEST set for
+    # final reporting only — never read here.
+    train_df, val_df = load_train_holdout(frac=0.10, seed=42)
+    # The no-char-CNN ablation writes to a separate checkpoint dir so it never
+    # clobbers the deployed full model.
+    ckpt = CHECKPOINT_DIR / ("best_model_no_charcnn.pt" if not args.use_char_cnn
+                             else "best_model.pt")
+    fit(train_df, val_df, args, ckpt)

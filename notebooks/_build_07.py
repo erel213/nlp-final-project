@@ -30,8 +30,9 @@ and qualify the result:
 4. **DLP operating-point** — does the ensemble help at high recall, the point DLP needs?
 5. **Efficiency** — the ensemble's cost vs. a single model, for no significant gain.
 
-Everything runs post-hoc on the **already-cached** member probabilities
-(`ensemble/cache/`); nothing is retrained. All evaluation logic comes from the
+Everything runs post-hoc on the member probabilities
+(computed fresh via `ensemble.compute_probas` — no on-disk cache); nothing is
+retrained. All evaluation logic comes from the
 `evaluation` package (no direct sklearn/matplotlib in this notebook).""")
 
 # ---------------------------------------------------------------- Setup
@@ -53,7 +54,9 @@ FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 RANDOM_STATE = 42""")
 
-code("""from ensemble import load_probas
+code("""import torch
+
+from ensemble import compute_probas
 from evaluation import (
     LABEL_COLS, MACRO_LABELS,
     load_weights, fuse, run_ablation, ensemble_vs_best_single, compute_all_metrics,
@@ -63,11 +66,18 @@ from evaluation import (
     complementarity_summary, precision_at_recall, operating_point_table,
 )
 
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+elif torch.backends.mps.is_available():
+    DEVICE = "mps"
+else:
+    DEVICE = "cpu"
+
 # DEV split (fits weights/thresholds) and TEST split (reported once). Same splits as
-# notebook 06. load_probas verifies row alignment via a source-text content hash
-# (non-security: used only as a cache-alignment check, not for integrity/crypto).
-dev_probas, dev_y, dev_texts = load_probas(split="train_holdout")
-eval_probas, eval_y, eval_texts = load_probas(split="validation")
+# notebook 06. compute_probas runs inference fresh (no on-disk cache), so these
+# probabilities always reflect the current checkpoints.
+dev_probas, dev_y, dev_texts = compute_probas(split="train_holdout", device=DEVICE)
+eval_probas, eval_y, eval_texts = compute_probas(split="validation", device=DEVICE)
 
 weights = load_weights(ENSEMBLE_DIR / "weights.json")
 with open(ENSEMBLE_DIR / "thresholds.json") as f:

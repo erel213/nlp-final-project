@@ -162,18 +162,16 @@ def fit(
     return ckpt_path, best_val_f1
 
 
-def train(args: argparse.Namespace) -> None:
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--lr", type=float, default=2e-5)
+    args = parser.parse_args()
+
     print("Loading data...")
     # Early stopping / checkpoint selection uses a seeded 10% held-out slice of
     # `train` (per .claude/rules/model-bert.md). The `validation` split is reserved
     # untouched as the TEST set for final reporting only — never read here.
     train_df, val_df = load_train_holdout(frac=0.10, seed=42)
     fit(train_df, val_df, args, CHECKPOINT_DIR / "best_model.pt")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=2e-5)
-    train(parser.parse_args())

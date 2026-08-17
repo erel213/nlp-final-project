@@ -7,42 +7,42 @@
   "threshold": 0.5,
   "per_label": {
     "benign": {
-      "precision": 0.8765182186234818,
-      "recall": 0.9537444933920705,
-      "f1": 0.9135021097046413,
+      "precision": 0.872745490981964,
+      "recall": 0.9592511013215859,
+      "f1": 0.9139559286463799,
       "support": 908
     },
     "PII": {
-      "precision": 0.9943804034582132,
+      "precision": 0.994810436788237,
       "recall": 0.9805342426825803,
-      "f1": 0.987408785233939,
+      "f1": 0.9876207513416816,
       "support": 7038
     },
     "financial": {
-      "precision": 0.9571619812583668,
-      "recall": 0.935251798561151,
-      "f1": 0.9460800529275554,
+      "precision": 0.959758551307847,
+      "recall": 0.9359058207979072,
+      "f1": 0.947682119205298,
       "support": 1529
     },
     "confidential": {
-      "precision": 0.9670448406266883,
-      "recall": 0.98568281938326,
-      "f1": 0.9762748841014454,
+      "precision": 0.9655636265805757,
+      "recall": 0.9881607929515418,
+      "f1": 0.976731528099061,
       "support": 3632
     }
   },
-  "macro_f1": 0.9699212407543133,
+  "macro_f1": 0.9706781328820134,
   "macro_f1_ci": {
-    "lower": 0.9665111950574611,
-    "upper": 0.9729753711530842,
+    "lower": 0.9673433954638213,
+    "upper": 0.973658324312136,
     "level": 0.95
   },
   "auc_roc": {
-    "benign": 0.9873344887977535,
-    "PII": 0.9900219137645482,
-    "financial": 0.9921500005146973,
-    "confidential": 0.9943201777227713,
-    "macro": 0.9909566451999425
+    "benign": 0.9905368966203605,
+    "PII": 0.991740088105727,
+    "financial": 0.9923871689337297,
+    "confidential": 0.9950134180488074,
+    "macro": 0.9924193929271561
   },
   "metadata": {
     "n_bootstrap": 1000,
@@ -53,6 +53,8 @@
     "base_model": "roberta-base",
     "frozen_blocks": "0-9",
     "label_smoothing": 0.05,
-    "checkpoint": "/Users/erelv/projects-chkp/final-project/models/roberta/checkpoint/best_model.pt"
+    "checkpoint": "/Users/erelv/projects-chkp/final-project/models/roberta/checkpoint/best_model.pt",
+    "selection_split": "train_holdout(frac=0.10, seed=42)",
+    "test_split": "validation"
   }
 }

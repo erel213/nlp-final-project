@@ -7,6 +7,7 @@
 
 \usepackage{natbib}
 \usepackage{graphicx}
+\usepackage{booktabs}
 
 \begin{document}
 
@@ -358,7 +359,9 @@ The category-specific weights are fit on the DEV split by a per-label
 grid search refined with Nelder--Mead optimization of the true
 per-label F1. Per-label decision thresholds are tuned on the same DEV
 split, and the identical tuned thresholds are then applied when
-reporting on TEST. We deliberately chose this simple linear pooling
+reporting on TEST. The resulting weights are normalized within each
+label and fixed before evaluation on TEST. We deliberately chose this
+simple linear pooling
 over more expressive alternatives such as stacking
 \citep{wolpert1992stacked} or input-conditioned gating
 \citep{jacobs1991adaptive}: with only four members, a linear pool with
@@ -416,6 +419,38 @@ decisions reported in the Introduction.
 \section{Experimental results}
 \label{sec:results}
 
+\subsection{Model comparison and learned fusion weights}
+
+On the untouched TEST split, RoBERTa is the strongest individual model,
+with a macro-F1 of 0.9699. The weighted ensemble reaches 0.9703, an
+absolute improvement of only 0.0003 macro-F1 (approximately 0.03
+percentage points). Thus, the ensemble has the highest point estimate,
+but the aggregate gain over RoBERTa is negligible. The macro-F1 reported
+here averages PII, financial, and confidential F1; benign performance is
+reported separately because the benign label is definitionally coupled
+to the absence of the sensitive labels.
+
+Table~\ref{tab:fusion-weights} reports the category-specific weights
+learned on DEV and fixed before TEST evaluation. Each column sums to one.
+The table is central to RQ2 because it shows how the fitted ensemble
+combines the four detector families differently for each label.
+
+\begin{table}[ht]
+    \centering
+    \caption{Learned category-specific ensemble weights.}
+    \label{tab:fusion-weights}
+    \begin{tabular}{lrrrr}
+        \toprule
+        Model & Benign & PII & Financial & Confidential \\
+        \midrule
+        BERT       & 0.697 & 0.800 & 0.200 & 0.000 \\
+        RoBERTa    & 0.100 & 0.000 & 0.000 & 0.512 \\
+        BiLSTM     & 0.104 & 0.100 & 0.500 & 0.390 \\
+        Rule-based & 0.100 & 0.100 & 0.300 & 0.098 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 % TODO: this section requires the refreshed evaluation artifacts
 % (retrain/re-eval queue in comments/RETRAIN_QUEUE.md).
 % Planned content (see report/REPORT_PLAN.md):
@@ -435,10 +470,12 @@ decisions reported in the Introduction.
 \subsection{Does the ensemble improve over the best individual model?}
 
 The aggregate results provide a qualified answer to RQ1. The weighted
-ensemble obtains the highest point estimate, but its advantage over
-RoBERTa is less than one macro-F1 percentage point. The main result is
-therefore not a large performance improvement. Instead, it shows that a
-strong contextual transformer already captures most of the predictive
+ensemble obtains the highest point estimate (0.9703 macro-F1), compared
+with 0.9699 for RoBERTa, the strongest individual model. This difference
+of 0.0003 macro-F1, or approximately 0.03 percentage points, is
+negligible. The main result is therefore not a large performance
+improvement. Instead, it shows that a strong contextual transformer
+already captures most of the predictive
 signal available in this benchmark, leaving limited room for a more
 complex heterogeneous ensemble. Because the absolute difference is
 small, it should not be described as practically or statistically
@@ -461,16 +498,15 @@ performance--complexity trade-off.
 \subsection{Category-specific complementarity}
 
 RQ2 reveals a more nuanced result. The learned fusion weights are not
-uniform across categories. RoBERTa receives approximately 0.8 of the
-weight for both benign and general PII predictions, showing that these
-decisions are dominated by contextual representations. For financial
-information, however, the weight is distributed across RoBERTa
-(approximately 0.52), the rule-based detector (0.29), and the BiLSTM
-(0.19). This is consistent with the nature of financial identifiers:
-many have recognizable surface structure, so regular expressions and
-character-level features can provide signals that complement contextual
-modeling. For confidential information, RoBERTa remains dominant, while
-BERT and the rule-based detector retain smaller contributions.
+uniform across categories. BERT receives most of the weight for benign
+(0.697) and general PII (0.800) predictions. Financial information is
+combined primarily through the BiLSTM (0.500) and rule-based detector
+(0.300), with a smaller contribution from BERT (0.200). This pattern is
+consistent with the recognizable surface structure of many financial
+identifiers, for which character-level features and explicit patterns
+can complement contextual modeling. Confidential-information prediction
+is divided mainly between RoBERTa (0.512) and the BiLSTM (0.390), with a
+smaller rule-based contribution (0.098).
 
 The category-specific weights should be interpreted as evidence about
 the fitted ensemble, not as a causal measure of model importance. A

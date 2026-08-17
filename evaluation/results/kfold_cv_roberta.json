@@ -12,16 +12,50 @@
   ],
   "aggregated": {
     "configuration": "solo_roberta",
-    "macro_f1_mean": 0.9490997000233061,
-    "macro_f1_std": 0.0026100957719219064,
-    "benign_f1_mean": 0.9044758222700114,
-    "benign_f1_std": 0.008884409249087706,
-    "PII_f1_mean": 0.9852716276362232,
-    "PII_f1_std": 0.001463478699768874,
-    "financial_f1_mean": 0.9351611071869865,
-    "financial_f1_std": 0.003636744016052796,
-    "confidential_f1_mean": 0.9714902430000034,
-    "confidential_f1_std": 0.0018474069254553404,
+    "macro_f1_mean": 0.9639743259410711,
+    "macro_f1_std": 0.0015044336334497335,
+    "per_label": {
+      "benign": {
+        "f1_mean": 0.9044758222700114,
+        "f1_std": 0.008884409249087706,
+        "precision_mean": 0.8569176776134528,
+        "precision_std": 0.016158806765905715,
+        "recall_mean": 0.9577833572453371,
+        "recall_std": 0.004254668201886979,
+        "support_mean": 696.4,
+        "support_std": 0.5477225575051635
+      },
+      "PII": {
+        "f1_mean": 0.9852716276362232,
+        "f1_std": 0.001463478699768874,
+        "precision_mean": 0.9947171275928447,
+        "precision_std": 0.000511841405854769,
+        "recall_mean": 0.976008284499388,
+        "recall_std": 0.0030624370497799687,
+        "support_mean": 5285.2,
+        "support_std": 0.44721359549988166
+      },
+      "financial": {
+        "f1_mean": 0.9351611071869865,
+        "f1_std": 0.003636744016052796,
+        "precision_mean": 0.9166866890677096,
+        "precision_std": 0.008774426565505422,
+        "recall_mean": 0.9544646983629412,
+        "recall_std": 0.004879597464220727,
+        "support_mean": 1137.6,
+        "support_std": 0.5477225575051375
+      },
+      "confidential": {
+        "f1_mean": 0.9714902430000034,
+        "f1_std": 0.0018474069254553404,
+        "precision_mean": 0.9573007047362256,
+        "precision_std": 0.002883574031171171,
+        "recall_mean": 0.9861152288563233,
+        "recall_std": 0.002915100618812782,
+        "support_mean": 2650.4,
+        "support_std": 0.5477225575051765
+      }
+    },
     "n_folds": 5
   },
   "notes": "CV over ai4privacy train split; validation TEST split untouched. Weights fit on inner-dev, evaluated on held-out fold. Paired t-test has low power at k=5 and folds are not fully independent \u2014 descriptive robustness."

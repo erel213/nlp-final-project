@@ -8,9 +8,27 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 
-from .metrics import bootstrap_ci, compute_all_metrics
+from .metrics import MACRO_LABELS, bootstrap_ci, compute_all_metrics
 
 LABEL_COLS: list[str] = ["benign", "PII", "financial", "confidential"]
+
+# Column indices of the informative categories averaged into the headline macro-F1
+# (benign excluded — see evaluation.metrics.MACRO_LABELS and comment 011). Every
+# macro-F1 computed in this module (ablation rows, RQ1 delta, weight sensitivity)
+# uses this SAME subset so the headline, RQ1 verdict, and CV aggregates share one
+# metric definition.
+_MACRO_IDX: list[int] = [LABEL_COLS.index(label) for label in MACRO_LABELS]
+
+
+def _macro_f1(yt: np.ndarray, yp: np.ndarray) -> float:
+    """Headline macro-F1 over MACRO_LABELS (PII/financial/confidential) only."""
+    yt = np.asarray(yt, dtype=int)
+    yp = np.asarray(yp, dtype=int)
+    return float(
+        f1_score(
+            yt[:, _MACRO_IDX], yp[:, _MACRO_IDX], average="macro", zero_division=0
+        )
+    )
 
 # A threshold may be a single float applied to every label, or a per-label
 # mapping ``{label: float}`` (e.g. the ensemble's DEV-tuned per-label
@@ -98,9 +116,6 @@ def run_ablation(
     common decision rule (keeps RQ1 apples-to-apples — see comment 010/017).
     """
     y_true = np.asarray(y_true, dtype=int)
-
-    def _macro_f1(yt: np.ndarray, yp: np.ndarray) -> float:
-        return float(f1_score(yt, yp, average="macro", zero_division=0))
 
     def _eval_config(config_name: str, w: dict, probas: dict) -> dict:
         y_pred, _ = fuse(probas, w, threshold=threshold)
@@ -223,9 +238,6 @@ def ensemble_vs_best_single(
     """
     y_true = np.asarray(y_true, dtype=int)
 
-    def _macro_f1(yt: np.ndarray, yp: np.ndarray) -> float:
-        return float(f1_score(yt, yp, average="macro", zero_division=0))
-
     y_pred_ensemble, _ = fuse(model_probas, weights, threshold=threshold)
     ensemble_f1 = _macro_f1(y_true, y_pred_ensemble)
 
@@ -281,7 +293,10 @@ def weight_sensitivity(
         varied[model_name][label] = float(w_val)
 
         y_pred, _ = fuse(model_probas, varied)
-        macro_f1 = float(f1_score(y_true, y_pred, average="macro", zero_division=0))
+        # Headline macro-F1 over MACRO_LABELS only (benign excluded), same definition
+        # as run_ablation / the RQ1 verdict. The varied ``label``'s own F1 is still
+        # reported separately below even if it is benign.
+        macro_f1 = _macro_f1(y_true, y_pred)
         label_f1 = float(f1_score(y_true[:, label_idx], y_pred[:, label_idx], average="binary", zero_division=0))
         rows.append({"weight": float(w_val), "macro_f1": macro_f1, f"{label}_f1": label_f1})
 

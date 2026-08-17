@@ -12,8 +12,8 @@
   ],
   "aggregated": {
     "configuration": "solo_bilstm",
-    "macro_f1_mean": 0.9159670183682074,
-    "macro_f1_std": 0.009908776804927338,
+    "macro_f1_mean": 0.9412208160980235,
+    "macro_f1_std": 0.006370995899301936,
     "per_label": {
       "benign": {
         "f1_mean": 0.840205625178759,

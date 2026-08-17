@@ -11,6 +11,24 @@ from sklearn.metrics import (
 
 LABEL_COLS: list[str] = ["benign", "PII", "financial", "confidential"]
 
+# Labels averaged into the headline macro-F1. ``benign`` is EXCLUDED because it is
+# definitionally the complement of "any entity present" (benign = 1 - PII at the row
+# level; see documentation/preprocessing.md), so its F1 mirrors PII's and macro-
+# averaging over all four double-counts a redundant, high-support category. benign
+# stays in ``per_label`` for transparency but is not part of the headline metric.
+# See comment 011 (Decision A1). Order matches LABEL_COLS.
+MACRO_LABELS: list[str] = ["PII", "financial", "confidential"]
+_MACRO_IDX: list[int] = [LABEL_COLS.index(label) for label in MACRO_LABELS]
+
+
+def _macro_f1_over(labels_idx: list[int], yt: np.ndarray, yp: np.ndarray) -> float:
+    """Unweighted mean of per-label binary F1 over the given column indices."""
+    return float(
+        f1_score(
+            yt[:, labels_idx], yp[:, labels_idx], average="macro", zero_division=0
+        )
+    )
+
 
 def bootstrap_ci(
     y_true: np.ndarray,
@@ -53,12 +71,13 @@ def compute_all_metrics(
             "support": int(y_true[:, i].sum()),
         }
 
-    macro_f1 = float(
-        f1_score(y_true, y_pred, average="macro", zero_division=0)
-    )
+    # Headline macro-F1: mean of binary F1 over the informative categories only
+    # (MACRO_LABELS = PII/financial/confidential). benign is excluded — see the
+    # MACRO_LABELS docstring and comment 011.
+    macro_f1 = _macro_f1_over(_MACRO_IDX, y_true, y_pred)
 
     def _macro_f1(yt: np.ndarray, yp: np.ndarray) -> float:
-        return float(f1_score(yt, yp, average="macro", zero_division=0))
+        return _macro_f1_over(_MACRO_IDX, yt, yp)
 
     ci = bootstrap_ci(
         y_true, y_pred, _macro_f1, n_resamples=n_bootstrap, random_state=random_state

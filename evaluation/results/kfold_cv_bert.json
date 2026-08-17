@@ -12,8 +12,8 @@
   ],
   "aggregated": {
     "configuration": "solo_bert",
-    "macro_f1_mean": 0.9427921715240959,
-    "macro_f1_std": 0.0031012363111880504,
+    "macro_f1_mean": 0.9586601564959991,
+    "macro_f1_std": 0.0027145744774541482,
     "per_label": {
       "benign": {
         "f1_mean": 0.8951882166083864,

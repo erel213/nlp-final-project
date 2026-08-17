@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .metrics import compute_all_metrics, bootstrap_ci
+from .metrics import compute_all_metrics, bootstrap_ci, MACRO_LABELS
 from .error_analysis import classify_errors, error_summary
 from .ablation import (
     load_weights,
@@ -37,6 +37,7 @@ def from_dataframe(df: pd.DataFrame, label_cols: list[str] = LABEL_COLS) -> np.n
 
 __all__ = [
     "LABEL_COLS",
+    "MACRO_LABELS",
     "from_dicts",
     "from_dataframe",
     "compute_all_metrics",

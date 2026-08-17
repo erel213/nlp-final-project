@@ -48,7 +48,8 @@ linguistic context surrounding them.
 
 While email DLP is the motivating application, we emphasize that it is
 not the evaluated task. All quantitative results in this report are
-obtained on the \texttt{ai4privacy/pii-masking-300k} dataset, a corpus
+obtained on the \texttt{ai4privacy/pii-masking-300k} dataset
+\citep{ai4privacy2024}, a corpus
 of short synthetic PII-bearing sentences. This text lacks the
 characteristic structure of real email (subject lines, threading,
 quoting, signatures), so our results measure sensitive-\emph{sentence}
@@ -373,10 +374,7 @@ two device-specific workarounds: disabling the fused
 scaled-dot-product-attention fast path, which does not support the
 attention-mask configuration used by our models, and reordering model
 assembly relative to device placement to avoid an MPS memory-alignment
-bug. Training the BiLSTM and partially fine-tuning each transformer
-each completed in
-% TODO: fill measured wall-clock times per model
-under a few hours on this hardware.
+bug.
 
 Beyond the code itself, the project followed an iterative internal
 review process: an adversarial review pass over the methodology and
@@ -389,35 +387,282 @@ decisions reported in the Introduction.
 \section{Experimental results}
 \label{sec:results}
 
-% TODO: this section requires the refreshed evaluation artifacts
-% (retrain/re-eval queue in comments/RETRAIN_QUEUE.md).
-% Planned content (see report/REPORT_PLAN.md):
-%   - Experimental settings recap: DEV/TEST protocol, metrics, thresholds convention.
-%   - Table 1: per-label F1 + macro-F1 for Majority, Regex, Presidio,
-%     BiLSTM, BERT, RoBERTa, Ensemble (from per_class_comparison.csv).
-%   - Table 2: ensemble per-label P/R/F1, macro-F1 CI, AUC (ensemble_metrics.json).
-%   - Table 3: learned per-category weights (ensemble/weights.json) — RQ2 centerpiece.
-%   - RQ1 paired-bootstrap verdict (delta, CI, p-value) vs best single model.
-%   - Leave-one-model-out ablation table + 5-fold CV stability.
-%   - Figures: per-label F1 grouped bars; weight heatmap; (optional) CI plot.
-%   - Short descriptive error analysis (negation / hypothetical / obfuscation buckets).
+\subsection{Settings}
+\label{subsec:settings}
+
+All numbers below are computed on the untouched TEST split (7{,}946
+English examples). Ensemble weights and all decision thresholds were fit
+on the DEV split (\texttt{train\_holdout}) and applied unchanged at test
+time; the tuned per-label thresholds are 0.65 (benign), 0.40 (PII), and
+0.50 (financial and confidential). Throughout this section,
+\emph{headline macro-F1} averages F1 over the three informative
+categories (PII, financial, confidential); \texttt{benign} is reported
+per label but excluded from the macro, since it is the complement of PII
+and would otherwise double-count the same decision. Confidence intervals
+use bootstrap resampling (1{,}000 resamples, fixed seed).
+
+\subsection{Main Comparison}
+\label{subsec:main-comparison}
+
+Table~\ref{tab:main-comparison} compares all systems under identical
+thresholds and ground truth. A majority-prior baseline (predict the most
+frequent label configuration) is included for orientation.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccccc}
+\hline
+Model & benign & PII & financial & confid. & macro-F1 \\
+\hline
+Majority prior & 0.000 & 0.939 & 0.000 & 0.000 & 0.313 \\
+Rule-based     & 0.605 & 0.943 & 0.656 & 0.807 & 0.802 \\
+BiLSTM         & 0.835 & 0.975 & 0.915 & 0.951 & 0.947 \\
+BERT           & 0.932 & 0.990 & 0.927 & 0.972 & 0.963 \\
+RoBERTa        & 0.926 & 0.989 & 0.946 & 0.976 & \textbf{0.971} \\
+Ensemble       & 0.934 & 0.991 & 0.946 & 0.975 & 0.970 \\
+\hline
+\end{tabular}
+\caption{Per-label F1 and headline macro-F1 (PII/financial/confidential)
+on TEST. 95\% bootstrap CIs for the two leading systems: RoBERTa
+$[0.967, 0.974]$, ensemble $[0.967, 0.974]$.}
+\label{tab:main-comparison}
+\end{table}
+
+The expected capability ordering holds: the rule-based detector is
+strong on structured PII but weak where patterns are irregular or
+contextual; the character-aware BiLSTM closes much of that gap; the two
+transformers are strongest overall. The ensemble matches --- but does
+not exceed --- the best single model. Per-label ROC-AUC for the ensemble
+is 0.99 or higher for every category (macro AUC 0.993).
+
+\paragraph{RQ1 verdict.} A paired bootstrap over TEST examples compares
+the ensemble's headline macro-F1 (0.9703) against the best single model,
+RoBERTa (0.9706). The delta is $-0.0003$ with 95\% CI
+$[-0.0029, +0.0024]$ and $p = 0.80$: the difference is statistically
+indistinguishable from zero. \textbf{The ensemble does not outperform
+the best single model.} We treat this significance-gated negative result
+as a finding, not a failure, and explain its mechanism below
+(Section~\ref{subsec:why-no-gain}).
+
+As a stability check, 5-fold cross-validation of the neural members
+yields headline macro-F1 of $0.964 \pm 0.002$ (RoBERTa),
+$0.959 \pm 0.003$ (BERT), and $0.941 \pm 0.006$ (BiLSTM), consistent
+with the single-split ranking in Table~\ref{tab:main-comparison}.
+
+\subsection{Per-Category Reliance (RQ2)}
+\label{subsec:rq2}
+
+Table~\ref{tab:weights} shows the learned fusion weights, and
+Table~\ref{tab:ablation} the leave-one-member-out ablation.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\hline
+Model & benign & PII & financial & confid. \\
+\hline
+BERT       & \textbf{0.70} & \textbf{0.80} & 0.20 & 0.00 \\
+RoBERTa    & 0.10 & 0.00 & 0.00 & \textbf{0.51} \\
+BiLSTM     & 0.10 & 0.10 & \textbf{0.50} & 0.39 \\
+Rule-based & 0.10 & 0.10 & 0.30 & 0.10 \\
+\hline
+\end{tabular}
+\caption{Learned per-category fusion weights (DEV-fit). Each column is
+normalized at fusion time. Note the anomaly discussed in the text:
+RoBERTa receives weight 0 on financial despite being the best single
+financial model.}
+\label{tab:weights}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\hline
+Configuration & PII & financial & confid. & macro-F1 \\
+\hline
+Full ensemble        & 0.991 & 0.946 & 0.975 & 0.970 \\
+$-$ BERT             & 0.969 & 0.936 & 0.975 & 0.960 \\
+$-$ RoBERTa          & 0.991 & 0.946 & 0.953 & 0.963 \\
+$-$ BiLSTM           & 0.990 & \textbf{0.656} & 0.975 & 0.874 \\
+$-$ Rule-based       & 0.990 & 0.927 & 0.977 & 0.964 \\
+RoBERTa alone        & 0.989 & 0.946 & 0.976 & 0.971 \\
+\hline
+\end{tabular}
+\caption{Leave-one-member-out ablation on TEST (per-label F1 and
+headline macro-F1).}
+\label{tab:ablation}
+\end{table}
+
+Reliance is clearly category-differential: removing BERT hurts PII
+($0.991 \rightarrow 0.969$), removing RoBERTa hurts confidential
+($0.975 \rightarrow 0.953$), and removing the BiLSTM collapses financial
+($0.946 \rightarrow 0.656$). So the answer to RQ2 is yes --- the fitted
+ensemble leans on different members for different categories.
+
+However, this reliance must not be over-read as intrinsic model
+complementarity, because it is confounded by the weight-fitting
+procedure. The clearest symptom is financial: the fit assigned RoBERTa a
+weight of exactly 0 (Table~\ref{tab:weights}) even though RoBERTa alone
+is the \emph{best} single financial model (F1 $= 0.946$,
+Table~\ref{tab:ablation}). The ensemble therefore carries financial on
+BiLSTM, BERT, and the rule-based detector; dropping the BiLSTM
+renormalizes onto the weaker remaining members and the score collapses.
+The collapse demonstrates sensitivity to a quirky weight fit --- not
+that RoBERTa needs the BiLSTM. Read honestly, RQ2's finding is ``the
+fitted ensemble depends on different members per category,'' which is
+weaker than ``the models intrinsically complement each other,'' and it
+does not translate into a net gain over the best single model (RQ1).
+
+\subsection{Why the Ensemble Cannot Win}
+\label{subsec:why-no-gain}
+
+Two measurements explain the null RQ1 result mechanistically.
+
+\paragraph{Oracle ceiling.} For each category we compute the accuracy of
+an oracle that, per example, selects whichever member happens to be
+correct --- an upper bound on any per-example combiner. The best single
+model already sits within 1.2--1.7 accuracy points of this ceiling: PII
+0.982 vs.\ oracle 0.994, financial 0.979 vs.\ 0.993, confidential 0.978
+vs.\ 0.995. With so little headroom, even a perfect combiner could only
+match the best member, not meaningfully pass it. (The oracle bound is
+computed in accuracy space while the headline metric is F1, so it is a
+headroom proxy rather than an exact F1 ceiling; the qualitative
+conclusion is robust.)
+
+\paragraph{Correlated errors.} Figure~\ref{fig:error-overlap} shows the
+pairwise Jaccard overlap of the members' error sets. The two
+transformers make largely the same mistakes (overlap 0.41 on PII, 0.39
+on financial, 0.48 on confidential), while the rule-based detector is
+the most decorrelated member but also the weakest. Ensembles profit from
+diverse errors among comparably strong members; here the strong members
+agree and the diverse member is weak.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/error_overlap.png}
+\caption{Pairwise Jaccard overlap of member error sets per category.
+High transformer--transformer overlap leaves little diversity for the
+ensemble to exploit.}
+\label{fig:error-overlap}
+\end{figure}
+
+\subsection{DLP Operating Point}
+\label{subsec:operating-point}
+
+Headline macro-F1 uses F1-optimal thresholds, but a deployed DLP system
+runs at high recall, since a missed sensitive item costs far more than a
+false alarm. Figure~\ref{fig:pr-curves} shows the ensemble's
+precision--recall curves per category. At a recall floor of 0.99, the
+ensemble attains the best
+per-category precision of any system: 0.467 (benign), 0.993 (PII), 0.647
+(financial), 0.960 (confidential), each at least matching the best
+single model (e.g., RoBERTa reaches 0.620 on financial and 0.954 on
+confidential at the same floor). Three caveats keep this a hint rather
+than a reversal of RQ1: the thresholds meeting the recall floor are
+selected on the TEST split itself, so these are optimistic upper bounds;
+the edge is not significance-tested; and the benign and financial values
+sit in low-precision regions where estimates are noisy.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/pr_curves_novelty.png}
+\caption{Ensemble precision--recall curves per category on TEST (dotted
+lines are iso-F1 contours). DLP deployment operates at the far right of
+these curves (recall $\geq 0.99$), where the benign and financial curves
+drop steeply.}
+\label{fig:pr-curves}
+\end{figure}
+
+\subsection{Error Analysis and Efficiency}
+\label{subsec:error-analysis}
+
+A descriptive pass over the strongest single model's TEST errors sorts
+them into negation, hypothetical, implicit-disclosure, and obfuscation
+buckets. False positives concentrate in negation-framed benign mentions
+of sensitive concepts, and the residual false negatives include
+obfuscated identifiers and implicit disclosures; the majority of errors,
+however, fall outside all four buckets. Because the dataset provides no
+controlled contrast set for these phenomena, this analysis remains
+descriptive and no robustness claim is attached to it.
+
+Finally, the efficiency accounting is one-sided: the ensemble evaluates
+every member at inference time ($\approx$241M parameters, dominated by
+the two transformers) versus $\approx$125M for RoBERTa alone ---
+roughly twice the compute for a macro-F1 delta indistinguishable from
+zero. On this dataset, deploying the ensemble is not justified.
 
 \section{Discussion}
 \label{sec:discussion}
 
-% TODO: write after results are final. Planned content:
-%   - Answer RQ1 honestly (gain over RoBERTa may be small / not significant).
-%   - Answer RQ2 via weights + ablation (category-dependent reliance).
-%   - Limitations: synthetic non-email data (external validity), derived labels,
-%     small per-category DEV support, descoped health/LLM/robustness items.
-%   - Process insights: evaluation-protocol pitfalls found and fixed.
+\paragraph{RQ1: no.} On this dataset, a per-category weighted ensemble
+of four heterogeneous models does not outperform a single fine-tuned
+RoBERTa: the macro-F1 delta is $-0.0003$ with a 95\% CI spanning zero
+($p = 0.80$). We consider this significance-gated negative result the
+central finding of the project, and the more informative because a
+per-category ensemble is exactly what a practitioner would naturally
+reach for. The mechanism is clear: the best single model already sits
+within 1.7 accuracy points of the per-example oracle ceiling, and the
+strongest members make largely the same mistakes. With that little
+headroom and that much error correlation, no combiner --- ours or a more
+expressive one --- had room to help. When a strong fine-tuned
+transformer is available, late fusion adds nothing on this task; the
+2$\times$ inference cost buys a delta indistinguishable from zero.
+
+\paragraph{RQ2: yes, with a confound.} The fitted ensemble does lean on
+different members per category --- BERT for PII, the BiLSTM for
+financial, RoBERTa for confidential --- and the ablation confirms that
+removing a member hurts precisely the category it is weighted for. But
+the reliance is a property of the fitted weights, not proof of intrinsic
+complementarity: the fit zero-weighted RoBERTa on financial despite
+RoBERTa being the best single financial model, which both explains the
+dramatic financial collapse when the BiLSTM is removed and leaves the
+ensemble marginally worse on financial than RoBERTa alone. A refit that
+guarantees RoBERTa a financial weight would test whether the reliance
+pattern survives; we flag this as follow-up work. The one place the
+ensemble shows an edge --- best per-category precision at the
+recall~$\geq 0.99$ operating point --- is reported with its caveats
+(test-split thresholds, no significance test) as a hint for future work
+rather than a result.
+
+\paragraph{Limitations.} All results are on synthetic, sentence-level
+PII text; nothing here demonstrates performance on real organizational
+email (no subject lines, threading, or email register), and an email
+domain-shift evaluation is the most valuable next step. Labels are
+derived deterministically from the dataset's entity mask, so absolute
+scores ($\approx$0.97) partly reflect models recovering a known mapping
+on an easy synthetic task. The per-category weights were fit on a
+development split with limited support for the rarer categories, which
+plausibly contributed to the degenerate financial fit. The oracle bound
+is computed in accuracy space, a proxy for the F1 headline. Finally, as
+described in the Introduction, the health label, a zero-shot-LLM
+comparison, and a controlled robustness study were descoped; the error
+buckets we report are descriptive only.
+
+\paragraph{Process insights.} Several of this project's conclusions were
+made trustworthy by protocol fixes found during internal adversarial
+review rather than by modeling work: reserving an untouched TEST split
+after discovering the original selection split had been reused for
+tuning; applying tuned thresholds consistently to every system rather
+than mixing threshold conventions across tables; excluding the benign
+complement label from the headline macro; and gating the ensemble claim
+on a paired significance test instead of a point-estimate comparison
+(which, under the earlier flawed conventions, had shown an apparent
+ensemble ``win''). The transferable methodological takeaway: confirm an
+ensemble claim with an ablation \emph{and} a significance test, and
+judge it at the operating point the application will actually use.
 
 \section{Code}
 
+The complete implementation --- data preparation, the four models, the
+fusion and evaluation packages, notebooks 01--07 (data exploration, one
+notebook per model, ensemble training, and the novelty analysis that
+generates every number and figure in Section~\ref{sec:results}), and all
+result artifacts --- is available at:
 % TODO: insert repository link once the submission location is decided.
-The complete implementation, training and evaluation notebooks
-(data exploration, one notebook per model, and the ensemble), and all
-result artifacts are available at: \texttt{<repository link>}.
+\texttt{<repository link>}.
 
 \bibliographystyle{plain}
 \bibliography{references}

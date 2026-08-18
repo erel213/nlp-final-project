@@ -5,49 +5,49 @@
   "language_filter": "English",
   "n_samples": 7946,
   "threshold": {
-    "benign": 0.65,
-    "PII": 0.39999999999999997,
+    "benign": 0.7999999999999999,
+    "PII": 0.1,
     "financial": 0.49999999999999994,
-    "confidential": 0.49999999999999994
+    "confidential": 0.5499999999999999
   },
   "per_label": {
     "benign": {
-      "precision": 0.9154334038054969,
-      "recall": 0.9537444933920705,
-      "f1": 0.9341963322545846,
+      "precision": 0.9491916859122402,
+      "recall": 0.9052863436123348,
+      "f1": 0.9267192784667418,
       "support": 908
     },
     "PII": {
-      "precision": 0.9941327990841442,
-      "recall": 0.9870701903949985,
-      "f1": 0.9905889063168402,
+      "precision": 0.9859254046446164,
+      "recall": 0.9953111679454391,
+      "f1": 0.9905960545853072,
       "support": 7038
     },
     "financial": {
-      "precision": 0.964625850340136,
+      "precision": 0.9813148788927336,
       "recall": 0.9274035317200785,
-      "f1": 0.9456485495165055,
+      "f1": 0.9535978480161399,
       "support": 1529
     },
     "confidential": {
-      "precision": 0.9699945444626296,
-      "recall": 0.9790748898678414,
-      "f1": 0.9745135653603727,
+      "precision": 0.9746248294679399,
+      "recall": 0.9834801762114538,
+      "f1": 0.9790324791010004,
       "support": 3632
     }
   },
-  "macro_f1": 0.970250340397906,
+  "macro_f1": 0.9744087939008158,
   "macro_f1_ci": {
-    "lower": 0.9668827464118853,
-    "upper": 0.9735623873533596,
+    "lower": 0.9711377475495414,
+    "upper": 0.977573321306187,
     "level": 0.95
   },
   "auc_roc": {
-    "benign": 0.9918716896194729,
-    "PII": 0.9909468799331007,
-    "financial": 0.9931203832038284,
-    "confidential": 0.9954461348054382,
-    "macro": 0.99284627189046
+    "benign": 0.9929038460816236,
+    "PII": 0.9934480911051773,
+    "financial": 0.9934900479463427,
+    "confidential": 0.9957127215152387,
+    "macro": 0.9938886766620956
   },
   "metadata": {
     "n_bootstrap": 1000,
@@ -58,35 +58,35 @@
     "test_split": "validation",
     "weights": {
       "bert": {
-        "benign": 0.6965174129353234,
-        "PII": 0.8,
-        "financial": 0.2,
+        "benign": 0.1,
+        "PII": 0.1,
+        "financial": 0.1,
         "confidential": 0.0
       },
       "roberta": {
-        "benign": 0.09950248756218907,
-        "PII": 0.0,
-        "financial": 0.0,
-        "confidential": 0.5121951219512194
+        "benign": 0.7,
+        "PII": 0.7,
+        "financial": 0.3,
+        "confidential": 0.5970149253731344
       },
       "bilstm": {
-        "benign": 0.10447761194029853,
-        "PII": 0.1,
-        "financial": 0.5,
-        "confidential": 0.39024390243902435
+        "benign": 0.1,
+        "PII": 0.2,
+        "financial": 0.3,
+        "confidential": 0.2985074626865672
       },
       "rule_based": {
-        "benign": 0.09950248756218907,
-        "PII": 0.1,
+        "benign": 0.1,
+        "PII": 0.0,
         "financial": 0.3,
-        "confidential": 0.09756097560975609
+        "confidential": 0.10447761194029853
       }
     },
     "thresholds": {
-      "benign": 0.65,
-      "PII": 0.39999999999999997,
+      "benign": 0.7999999999999999,
+      "PII": 0.1,
       "financial": 0.49999999999999994,
-      "confidential": 0.49999999999999994
+      "confidential": 0.5499999999999999
     }
   }
 }

@@ -272,6 +272,83 @@ def ensemble_vs_best_single(
     return result
 
 
+def ensemble_vs_each_model(
+    model_probas: dict[str, np.ndarray],
+    weights: dict[str, dict[str, float]],
+    y_true: np.ndarray,
+    threshold: Threshold = 0.5,
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+    random_state: int = 42,
+    alpha: float = 0.05,
+) -> pd.DataFrame:
+    """Paired-bootstrap the full ensemble against EVERY single model.
+
+    For each model, runs ``paired_bootstrap_delta`` on the headline macro-F1 delta
+    (ensemble - solo_model) over the SAME resampled rows and one common per-label
+    threshold rule, then applies a Holm-Bonferroni step-down correction across the
+    family of per-model tests (controls the family-wise error rate at ``alpha``).
+    This is the multi-comparison companion to ``ensemble_vs_best_single``: the
+    latter is the single headline verdict, this is the full pairwise panel.
+
+    ``threshold`` accepts a float or a per-label ``{label: float}`` mapping and is
+    applied identically to the ensemble and to every solo model.
+
+    Returns a tidy DataFrame, one row per model, sorted by ascending raw p-value:
+    ``model | model_macro_f1 | ensemble_macro_f1 | delta | ci_lower | ci_upper |
+    p_value | p_value_holm | significant``. ``delta``/``ci_*`` are the effect size
+    and its CI; ``significant`` is the Holm step-down decision at ``alpha``.
+    """
+    y_true = np.asarray(y_true, dtype=int)
+    y_pred_ensemble, _ = fuse(model_probas, weights, threshold=threshold)
+    ensemble_f1 = _macro_f1(y_true, y_pred_ensemble)
+
+    rows = []
+    for model in model_probas:
+        solo_pred, _ = fuse(
+            {model: model_probas[model]}, _solo_weights(model), threshold=threshold
+        )
+        res = paired_bootstrap_delta(
+            y_true,
+            y_pred_ensemble,
+            solo_pred,
+            _macro_f1,
+            n_resamples=n_resamples,
+            confidence=confidence,
+            random_state=random_state,
+        )
+        rows.append(
+            {
+                "model": model,
+                "model_macro_f1": _macro_f1(y_true, solo_pred),
+                "ensemble_macro_f1": ensemble_f1,
+                "delta": res["mean_delta"],
+                "ci_lower": res["ci_lower"],
+                "ci_upper": res["ci_upper"],
+                "p_value": res["p_value"],
+            }
+        )
+
+    df = (
+        pd.DataFrame(rows)
+        .sort_values("p_value", kind="mergesort")
+        .reset_index(drop=True)
+    )
+
+    # Holm-Bonferroni step-down across the family of per-model tests. Adjusted
+    # p-values are made monotonic non-decreasing so that ``p_value_holm <= alpha``
+    # reproduces exactly the step-down reject/retain decision.
+    m = len(df)
+    p_holm = np.empty(m)
+    running_max = 0.0
+    for i, p in enumerate(df["p_value"].to_numpy()):
+        running_max = max(running_max, min(1.0, (m - i) * float(p)))
+        p_holm[i] = running_max
+    df["p_value_holm"] = p_holm
+    df["significant"] = df["p_value_holm"] <= alpha
+    return df
+
+
 def weight_sensitivity(
     model_probas: dict[str, np.ndarray],
     weights: dict[str, dict[str, float]],

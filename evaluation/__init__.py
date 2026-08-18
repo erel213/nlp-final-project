@@ -12,6 +12,7 @@ from .ablation import (
     fuse,
     paired_bootstrap_delta,
     ensemble_vs_best_single,
+    ensemble_vs_each_model,
 )
 from .kfold import aggregate_folds, fold_scores, paired_fold_test
 from .visualization import (
@@ -21,16 +22,8 @@ from .visualization import (
     plot_pr_curves,
     plot_model_comparison_table,
     plot_ablation_table,
-    plot_error_overlap,
 )
 from .io import save_results, load_results, load_all_results
-from .complementarity import (
-    per_model_correct,
-    oracle_gap,
-    error_overlap_matrix,
-    unique_contribution,
-    complementarity_summary,
-)
 from .operating_point import precision_at_recall, operating_point_table
 
 LABEL_COLS: list[str] = ["benign", "PII", "financial", "confidential"]
@@ -59,6 +52,7 @@ __all__ = [
     "fuse",
     "paired_bootstrap_delta",
     "ensemble_vs_best_single",
+    "ensemble_vs_each_model",
     "aggregate_folds",
     "fold_scores",
     "paired_fold_test",
@@ -68,15 +62,9 @@ __all__ = [
     "plot_pr_curves",
     "plot_model_comparison_table",
     "plot_ablation_table",
-    "plot_error_overlap",
     "save_results",
     "load_results",
     "load_all_results",
-    "per_model_correct",
-    "oracle_gap",
-    "error_overlap_matrix",
-    "unique_contribution",
-    "complementarity_summary",
     "precision_at_recall",
     "operating_point_table",
 ]

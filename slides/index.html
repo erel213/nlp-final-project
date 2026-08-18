@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SentinelMail — NLP Final Project Presentation</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --slide-bg: #ffffff;
+    --ink: #1a2233;
+    --muted: #5a6478;
+    --accent: #0f5fd7;
+    --accent-soft: #e8f0fe;
+    --good: #0c7a43;
+    --warn: #b25000;
+    --line: #dde3ee;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    margin: 24px auto;
+    padding: 56px 72px 48px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,.45);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* --- screen mode: one slide at a time --- */
+  body.deck-mode .slide { display: none; }
+  body.deck-mode .slide.active { display: flex; }
+
+  .slide-footer {
+    position: absolute;
+    bottom: 18px;
+    left: 72px;
+    right: 72px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .kicker {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  h1 { font-size: 44px; line-height: 1.2; }
+  h2 { font-size: 34px; margin-bottom: 22px; }
+  h3 { font-size: 20px; margin-bottom: 8px; }
+
+  p, li { font-size: 20px; line-height: 1.45; }
+  li { margin-bottom: 10px; }
+  ul { padding-left: 26px; }
+
+  .muted { color: var(--muted); }
+  .small { font-size: 16px; }
+  .tiny  { font-size: 14px; }
+
+  .cols { display: flex; gap: 40px; flex: 1; min-height: 0; }
+  .col  { flex: 1; min-width: 0; }
+
+  .card {
+    background: #f7f9fd;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+  }
+
+  .card h3 { color: var(--accent); }
+
+  .verdict {
+    background: var(--accent-soft);
+    border-left: 5px solid var(--accent);
+    border-radius: 6px;
+    padding: 16px 22px;
+    font-size: 21px;
+    margin-top: 18px;
+  }
+  .verdict strong { color: var(--accent); }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td { padding: 7px 12px; text-align: center; border-bottom: 1px solid var(--line); }
+  th { background: #f0f4fb; font-weight: 700; }
+  td:first-child, th:first-child { text-align: left; }
+  tr.hl td { background: var(--accent-soft); font-weight: 700; }
+  .num-good { color: var(--good); font-weight: 700; }
+  .num-warn { color: var(--warn); font-weight: 700; }
+
+  code, .mono { font-family: var(--mono); font-size: .92em; }
+
+  .eq {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 26px;
+    text-align: center;
+    padding: 14px 0 6px;
+    font-style: italic;
+  }
+
+  .labels { display: flex; gap: 12px; margin: 14px 0; flex-wrap: wrap; }
+  .label-chip {
+    border-radius: 20px;
+    padding: 6px 18px;
+    font-size: 18px;
+    font-weight: 700;
+    border: 2px solid var(--line);
+  }
+  .chip-benign { background:#eef7ef; border-color:#bfdec5; color:#2c6e3a; }
+  .chip-pii    { background:#e8f0fe; border-color:#b9cff5; color:#1d4fa3; }
+  .chip-fin    { background:#fdf3e7; border-color:#f0d3ad; color:#96570f; }
+  .chip-conf   { background:#fbeaea; border-color:#eec2c2; color:#a03030; }
+
+  .title-slide { justify-content: center; text-align: center; }
+  .title-slide h1 { font-size: 46px; margin: 18px 0 14px; }
+  .title-slide .subtitle { font-size: 24px; color: var(--muted); margin-bottom: 34px; }
+  .title-slide .authors { font-size: 22px; margin-bottom: 8px; }
+
+  .figure-wrap { text-align: center; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .figure-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 4px;
+    background: var(--accent);
+    transition: width .25s ease;
+    z-index: 10;
+  }
+
+  .help {
+    position: fixed;
+    bottom: 10px; right: 16px;
+    color: #8a93a8;
+    font-size: 13px;
+    z-index: 10;
+  }
+
+  /* --- print / PDF export: one slide per page --- */
+  @media print {
+    body { background: #fff; }
+    body.deck-mode .slide { display: flex; }
+    .slide {
+      margin: 0;
+      box-shadow: none;
+      border-radius: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+    .progress, .help { display: none; }
+    @page { size: 1280px 720px; margin: 0; }
+  }
+</style>
+</head>
+<body class="deck-mode">
+<div class="progress" id="progress"></div>
+<div class="help">← → to navigate · ⌘P to export PDF</div>
+
+<!-- ============ SLIDE 1 — TITLE ============ -->
+<section class="slide title-slide">
+  <div class="kicker">NLP Course · Final Project · Reichman University · 2026</div>
+  <h1>SentinelMail</h1>
+  <div class="subtitle">Benchmarking Multi-Model NLP Ensembles for Sensitive-Sentence Classification</div>
+  <div class="authors">Shelly Yaroslavsky &nbsp;·&nbsp; Erel Vanono</div>
+  <div class="muted small">Motivating application: email Data Loss Prevention (DLP)</div>
+</section>
+
+<!-- ============ SLIDE 2 — PROBLEM & MOTIVATION ============ -->
+<section class="slide">
+  <div class="kicker">Problem &amp; Motivation</div>
+  <h2>Sensitive information has no single textual form</h2>
+  <div class="cols">
+    <div class="col">
+      <div class="card">
+        <h3>Structured patterns</h3>
+        <p class="small">Credit-card and social-security numbers follow recognizable formats — regexes catch them.</p>
+      </div>
+      <div class="card">
+        <h3>Irregular / obfuscated forms</h3>
+        <p class="small">The same phone number as a continuous digit run, or split by spaces and hyphens — fixed rules break.</p>
+      </div>
+      <div class="card">
+        <h3>Context-dependent disclosures</h3>
+        <p class="small">Sensitive concepts mentioned in instructions, negations, or hypotheticals — without revealing real data.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>SentinelMail</span><span>2 / 8</span></div>
+</section>
+
+<!-- ============ SLIDE 3 — TASK & DATA ============ -->
+<section class="slide">
+  <div class="kicker">Task &amp; Data</div>
+  <h2>Multi-label classification on <span class="mono">ai4privacy/pii-masking-300k</span></h2>
+  <div class="labels">
+    <span class="label-chip chip-benign">benign</span>
+    <span class="label-chip chip-pii">PII</span>
+    <span class="label-chip chip-fin">financial</span>
+    <span class="label-chip chip-conf">confidential</span>
+  </div>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>Each text may belong to <strong>multiple categories</strong>; labels are hierarchical — financial and confidential are subsets of PII; benign excludes all.</li>
+        <li>Labels are <strong>derived deterministically</strong> from the dataset's entity mask (<span class="mono">privacy_mask</span>), not independently annotated — this partly explains why pattern-based models are competitive.</li>
+        <li>English subset: <strong>29,908 train / 7,946 test</strong>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer"><span>SentinelMail</span><span>3 / 8</span></div>
+</section>
+
+<!-- ============ SLIDE 4 — RESEARCH QUESTIONS & MODELS ============ -->
+<section class="slide">
+  <div class="kicker">Research Questions &amp; Methodology</div>
+  <h2>Four model families, two questions</h2>
+  <div class="cols">
+    <div class="col">
+      <div class="verdict" style="margin-top:0">
+        <strong>RQ1:</strong> Does a multi-model ensemble outperform the <em>best single model</em>?
+      </div>
+      <div class="verdict">
+        <strong>RQ2:</strong> Does model complementarity vary across sensitivity categories (PII vs. financial vs. confidential)?
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <h3>Rule-based — pattern-aware</h3>
+        <p class="small">Microsoft Presidio (regex + spaCy NER) + 3 custom recognizers. No training, transparent.</p>
+      </div>
+      <div class="card">
+        <h3>BiLSTM + char-CNN — character-aware</h3>
+        <p class="small">Frozen GloVe + character convolutions → 2-layer BiLSTM. Catches unusual separators &amp; OOV tokens.</p>
+      </div>
+      <div class="card">
+        <h3>BERT &amp; RoBERTa — context-aware</h3>
+        <p class="small">Fine-tuned (last 2 blocks + head) for implicit, instruction-embedded, or hypothetical mentions.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer"><span>SentinelMail</span><span>4 / 8</span></div>
+</section>
+
+<!-- ============ SLIDE 5 — ENSEMBLE ============ -->
+<section class="slide">
+  <div class="kicker">Methodology</div>
+  <h2>Category-specific confidence-weighted late fusion</h2>
+  <div class="eq">
+    p<sub>l</sub><sup>ensemble</sup>(x) &nbsp;=&nbsp; &Sigma;<sub>m</sub> w<sub>m,l</sub> · p<sub>m,l</sub>(x) &nbsp;/&nbsp; &Sigma;<sub>m</sub> w<sub>m,l</sub>
+  </div>
+  <ul style="margin-top:14px">
+    <li>Each model has a <strong>different weight per category</strong> — e.g., rules for structured financial identifiers, a transformer for context-dependent PII.</li>
+    <li>Weights fit on DEV: per-label grid search refined with Nelder–Mead on per-label F1; decision thresholds tuned on the same DEV split, applied unchanged on TEST.</li>
+  </ul>
+  <div class="slide-footer"><span>SentinelMail</span><span>5 / 8</span></div>
+</section>
+
+<!-- ============ SLIDE 6 — RQ1 RESULTS ============ -->
+<section class="slide">
+  <div class="kicker">Results · RQ1</div>
+  <h2>The ensemble wins — significantly, but by little</h2>
+  <div class="cols">
+    <div class="col" style="flex:1.2">
+      <table>
+        <tr><th>Model</th><th>benign</th><th>PII</th><th>financial</th><th>confid.</th><th>macro-F1</th></tr>
+        <tr><td>Majority prior</td><td>0.000</td><td>0.939</td><td>0.000</td><td>0.000</td><td>0.313</td></tr>
+        <tr><td>Rule-based</td><td>0.605</td><td>0.943</td><td>0.656</td><td>0.807</td><td>0.802</td></tr>
+        <tr><td>BiLSTM</td><td>0.856</td><td>0.982</td><td>0.902</td><td>0.945</td><td>0.943</td></tr>
+        <tr><td>BERT</td><td>0.929</td><td>0.991</td><td>0.922</td><td>0.970</td><td>0.961</td></tr>
+        <tr><td>RoBERTa</td><td>0.928</td><td>0.990</td><td>0.948</td><td>0.977</td><td>0.972</td></tr>
+        <tr class="hl"><td>Ensemble</td><td>0.927</td><td>0.991</td><td>0.954</td><td>0.979</td><td>0.974</td></tr>
+      </table>
+      <p class="tiny muted" style="margin-top:10px">Per-label F1 on TEST (7,946 examples). Headline macro-F1 = PII / financial / confidential only (benign is the complement of PII). 95% CIs: RoBERTa [0.968, 0.975], ensemble [0.971, 0.978].</p>
+    </div>
+    <div class="col" style="flex:.9">
+      <div class="verdict" style="margin-top:0">
+        <strong>RQ1 verdict:</strong> ensemble 0.9744 vs. RoBERTa 0.9717 —<br>
+        delta <span class="num-good">+0.0026</span>, 95% CI [+0.0006, +0.0048], <em>p</em> = 0.006.<br>
+        <strong>Reliably positive, practically small.</strong>
+      </div>
+      <ul class="small" style="margin-top:16px">
+        <li>Survives Holm–Bonferroni correction against <strong>every</strong> member; delta grows as the member weakens (up to +0.172 vs. rule-based).</li>
+        <li>At N ≈ 8k, "significant" means <em>reliably positive</em> — not <em>large</em>. Effect size is always reported next to the p-value.</li>
+        <li>5-fold CV confirms the ranking is stable.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer"><span>SentinelMail</span><span>6 / 8</span></div>
+</section>
+
+<!-- ============ SLIDE 7 — RQ2 RESULTS ============ -->
+<section class="slide">
+  <div class="kicker">Results · RQ2</div>
+  <h2>Weights suggest specialization — the ablation disagrees</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>Learned fusion weights (DEV-fit)</h3>
+      <table class="small">
+        <tr><th>Model</th><th>benign</th><th>PII</th><th>financial</th><th>confid.</th></tr>
+        <tr><td>BERT</td><td>0.10</td><td>0.10</td><td>0.10</td><td>0.00</td></tr>
+        <tr class="hl"><td>RoBERTa</td><td>0.70</td><td>0.70</td><td>0.30</td><td>0.60</td></tr>
+        <tr><td>BiLSTM</td><td>0.10</td><td>0.20</td><td>0.30</td><td>0.30</td></tr>
+        <tr><td>Rule-based</td><td>0.10</td><td>0.00</td><td>0.30</td><td>0.10</td></tr>
+      </table>
+      <p class="tiny muted" style="margin-top:8px">Looks like per-category specialization: RoBERTa dominant on 3 of 4; only financial spreads across members.</p>
+    </div>
+    <div class="col">
+      <h3>Leave-one-member-out ablation (TEST)</h3>
+      <table class="small">
+        <tr><th>Configuration</th><th>PII</th><th>financial</th><th>confid.</th><th>macro-F1</th></tr>
+        <tr><td>Full ensemble</td><td>0.991</td><td>0.954</td><td>0.979</td><td>0.974</td></tr>
+        <tr><td>− BERT</td><td>0.990</td><td>0.951</td><td>0.979</td><td>0.973</td></tr>
+        <tr class="hl"><td>− RoBERTa</td><td>0.990</td><td>0.943</td><td>0.944</td><td class="num-warn">0.959</td></tr>
+        <tr><td>− BiLSTM</td><td>0.991</td><td>0.948</td><td>0.977</td><td>0.972</td></tr>
+        <tr><td>− Rule-based</td><td>0.991</td><td>0.939</td><td>0.979</td><td>0.970</td></tr>
+        <tr><td>RoBERTa alone</td><td>0.990</td><td>0.948</td><td>0.977</td><td>0.972</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="verdict">
+    <strong>RQ2 verdict — a qualified no:</strong> removing RoBERTa costs ~1.5 macro-F1 points; removing any other member barely moves the score. Reliance concentrates on one member rather than differentiating by category — <em>which mechanistically explains RQ1's small margin</em>: an ensemble dominated by one member has little headroom over that member alone.
+  </div>
+  <div class="slide-footer"><span>SentinelMail</span><span>7 / 8</span></div>
+</section>
+
+<!-- ============ SLIDE 8 — SUMMARY ============ -->
+<section class="slide">
+  <div class="kicker">Summary &amp; Conclusions</div>
+  <h2>What we built, what we found, what it means</h2>
+  <div style="display:flex; flex-direction:column; gap:18px; flex:1; min-height:0; justify-content:center;">
+    <div class="card">
+      <h3>What we built</h3>
+      <p class="small">A four-family benchmark — rule-based (Presidio), BiLSTM+char-CNN, BERT, RoBERTa — fused via per-category confidence-weighted late fusion, evaluated on ai4privacy/pii-masking-300k (29 k train / 8 k test).</p>
+    </div>
+    <div class="verdict" style="margin-top:0">
+      <strong>RQ1:</strong> The ensemble reliably beats the best single model (RoBERTa) — macro-F1 <span class="num-good">+0.0026</span>, <em>p</em> = 0.006, CI [+0.0006, +0.0048]. <em>Reliable, but small.</em>
+    </div>
+    <div class="verdict">
+      <strong>RQ2:</strong> No true per-category specialization — reliance concentrates on RoBERTa across all categories. Removing any other member barely moves the score, which mechanistically explains the small RQ1 margin.
+    </div>
+  </div>
+  <div class="slide-footer"><span>SentinelMail</span><span>8 / 8</span></div>
+</section>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = Math.min(Math.max(parseInt(location.hash.slice(1) || '0', 10) || 0, 0), slides.length - 1);
+  const progress = document.getElementById('progress');
+
+  function show(i) {
+    idx = Math.min(Math.max(i, 0), slides.length - 1);
+    slides.forEach((s, j) => s.classList.toggle('active', j === idx));
+    progress.style.width = ((idx + 1) / slides.length * 100) + '%';
+    location.hash = idx;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') show(idx + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(idx - 1);
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  document.addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    show(idx + (e.clientX > window.innerWidth / 2 ? 1 : -1));
+  });
+
+  show(idx);
+</script>
+</body>
+</html>

@@ -3,8 +3,8 @@
     "rule_based": 0,
     "bert": 109485316,
     "roberta": 124648708,
-    "bilstm": 7076284
+    "bilstm": 6771474
   },
-  "ensemble_total_params": 241210308,
-  "note": "ensemble runs all members; inference cost ~= sum of members, dominated by the two transformers. RQ1 gain over best single is not significant."
+  "ensemble_total_params": 240905498,
+  "note": "ensemble runs all members; inference cost ~= sum of members, dominated by the two transformers. RQ1 gain over best single is statistically significant but negligible in magnitude (+0.0026 macro-F1) at ~2x cost."
 }

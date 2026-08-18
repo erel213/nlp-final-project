@@ -1,12 +1,12 @@
 {
-  "mean_delta": -0.00032279824616281914,
-  "ci_lower": -0.0029321601145047894,
-  "ci_upper": 0.0023741962645518755,
-  "p_value": 0.8,
+  "mean_delta": 0.0026382799756095414,
+  "ci_lower": 0.0006116592940957657,
+  "ci_upper": 0.00478402781629981,
+  "p_value": 0.006,
   "n_resamples": 1000,
   "level": 0.95,
-  "significant": false,
+  "significant": true,
   "best_single_model": "roberta",
-  "ensemble_macro_f1": 0.970250340397906,
-  "best_single_macro_f1": 0.9705770170369991
+  "ensemble_macro_f1": 0.9744087939008158,
+  "best_single_macro_f1": 0.971736487352942
 }

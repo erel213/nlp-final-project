@@ -3,108 +3,108 @@
     {
       "label": "benign",
       "best_single_model": "bert",
-      "best_single_acc": 0.9840171155298263,
-      "oracle_acc": 0.9950918701233324,
-      "oracle_gap": 0.011074754593506153
+      "best_single_acc": 0.9835137175937578,
+      "oracle_acc": 0.9943367732192298,
+      "oracle_gap": 0.010823055625471922
     },
     {
       "label": "PII",
       "best_single_model": "bert",
-      "best_single_acc": 0.9822552227535867,
-      "oracle_acc": 0.9942109237352127,
-      "oracle_gap": 0.011955700981626016
+      "best_single_acc": 0.9843946639818777,
+      "oracle_acc": 0.9944626227032469,
+      "oracle_gap": 0.01006795872136923
     },
     {
       "label": "financial",
       "best_single_model": "roberta",
-      "best_single_acc": 0.9794865341052101,
-      "oracle_acc": 0.9928265794110244,
-      "oracle_gap": 0.01334004530581423
+      "best_single_acc": 0.9801157815252958,
+      "oracle_acc": 0.9929524288950415,
+      "oracle_gap": 0.012836647369745768
     },
     {
       "label": "confidential",
       "best_single_model": "roberta",
-      "best_single_acc": 0.9781021897810219,
-      "oracle_acc": 0.9949660206393154,
-      "oracle_gap": 0.01686383085829346
+      "best_single_acc": 0.9788572866851246,
+      "oracle_acc": 0.9953435690913667,
+      "oracle_gap": 0.01648628240624206
     }
   ],
   "error_overlap": {
     "PII": {
       "bert": {
         "bert": 1.0,
-        "roberta": 0.4077669902912621,
-        "bilstm": 0.2430379746835443,
-        "rule_based": 0.09378663540445487
+        "roberta": 0.44692737430167595,
+        "bilstm": 0.26174496644295303,
+        "rule_based": 0.09438470728793309
       },
       "roberta": {
-        "bert": 0.4077669902912621,
+        "bert": 0.44692737430167595,
         "roberta": 1.0,
-        "bilstm": 0.21707317073170732,
-        "rule_based": 0.09929906542056074
+        "bilstm": 0.23248407643312102,
+        "rule_based": 0.11151079136690648
       },
       "bilstm": {
-        "bert": 0.2430379746835443,
-        "roberta": 0.21707317073170732,
+        "bert": 0.26174496644295303,
+        "roberta": 0.23248407643312102,
         "bilstm": 1.0,
-        "rule_based": 0.14543630892678033
+        "rule_based": 0.12742980561555076
       },
       "rule_based": {
-        "bert": 0.09378663540445487,
-        "roberta": 0.09929906542056074,
-        "bilstm": 0.14543630892678033,
+        "bert": 0.09438470728793309,
+        "roberta": 0.11151079136690648,
+        "bilstm": 0.12742980561555076,
         "rule_based": 1.0
       }
     },
     "financial": {
       "bert": {
         "bert": 1.0,
-        "roberta": 0.38652482269503546,
-        "bilstm": 0.2113022113022113,
-        "rule_based": 0.09498399146211313
+        "roberta": 0.3720136518771331,
+        "bilstm": 0.2210065645514223,
+        "rule_based": 0.09109947643979058
       },
       "roberta": {
-        "bert": 0.38652482269503546,
+        "bert": 0.3720136518771331,
         "roberta": 1.0,
-        "bilstm": 0.22988505747126436,
-        "rule_based": 0.11614401858304298
+        "bilstm": 0.22916666666666666,
+        "rule_based": 0.11812865497076024
       },
       "bilstm": {
-        "bert": 0.2113022113022113,
-        "roberta": 0.22988505747126436,
+        "bert": 0.2210065645514223,
+        "roberta": 0.22916666666666666,
         "bilstm": 1.0,
-        "rule_based": 0.09700722394220847
+        "rule_based": 0.089128305582762
       },
       "rule_based": {
-        "bert": 0.09498399146211313,
-        "roberta": 0.11614401858304298,
-        "bilstm": 0.09700722394220847,
+        "bert": 0.09109947643979058,
+        "roberta": 0.11812865497076024,
+        "bilstm": 0.089128305582762,
         "rule_based": 1.0
       }
     },
     "confidential": {
       "bert": {
         "bert": 1.0,
-        "roberta": 0.484251968503937,
-        "bilstm": 0.2916666666666667,
-        "rule_based": 0.06701030927835051
+        "roberta": 0.4473684210526316,
+        "bilstm": 0.23387096774193547,
+        "rule_based": 0.07494489346069066
       },
       "roberta": {
-        "bert": 0.484251968503937,
+        "bert": 0.4473684210526316,
         "roberta": 1.0,
-        "bilstm": 0.2447058823529412,
-        "rule_based": 0.05654761904761905
+        "bilstm": 0.19532908704883228,
+        "rule_based": 0.04896142433234421
       },
       "bilstm": {
-        "bert": 0.2916666666666667,
-        "roberta": 0.2447058823529412,
+        "bert": 0.23387096774193547,
+        "roberta": 0.19532908704883228,
         "bilstm": 1.0,
-        "rule_based": 0.10566298342541436
+        "rule_based": 0.13094417643004824
       },
       "rule_based": {
-        "bert": 0.06701030927835051,
-        "roberta": 0.05654761904761905,
-        "bilstm": 0.10566298342541436,
+        "bert": 0.07494489346069066,
+        "roberta": 0.04896142433234421,
+        "bilstm": 0.13094417643004824,
         "rule_based": 1.0
       }
     }
@@ -113,56 +113,56 @@
     {
       "label": "benign",
       "model": "bert",
-      "exclusive_correct": 13,
-      "exclusive_frac": 0.0016360432922225018
+      "exclusive_correct": 7,
+      "exclusive_frac": 0.0008809463881198087
     },
     {
       "label": "benign",
       "model": "roberta",
-      "exclusive_correct": 22,
-      "exclusive_frac": 0.0027686886483765417
+      "exclusive_correct": 14,
+      "exclusive_frac": 0.0017618927762396174
     },
     {
       "label": "benign",
       "model": "bilstm",
-      "exclusive_correct": 10,
-      "exclusive_frac": 0.0012584948401711553
+      "exclusive_correct": 12,
+      "exclusive_frac": 0.0015101938082053865
     },
     {
       "label": "benign",
       "model": "rule_based",
-      "exclusive_correct": 15,
-      "exclusive_frac": 0.001887742260256733
-    },
-    {
-      "label": "PII",
-      "model": "bert",
       "exclusive_correct": 12,
       "exclusive_frac": 0.0015101938082053865
     },
     {
       "label": "PII",
-      "model": "roberta",
-      "exclusive_correct": 19,
-      "exclusive_frac": 0.002391140196325195
-    },
-    {
-      "label": "PII",
-      "model": "bilstm",
+      "model": "bert",
       "exclusive_correct": 8,
       "exclusive_frac": 0.0010067958721369243
     },
     {
       "label": "PII",
+      "model": "roberta",
+      "exclusive_correct": 11,
+      "exclusive_frac": 0.0013843443241882709
+    },
+    {
+      "label": "PII",
+      "model": "bilstm",
+      "exclusive_correct": 13,
+      "exclusive_frac": 0.0016360432922225018
+    },
+    {
+      "label": "PII",
       "model": "rule_based",
-      "exclusive_correct": 17,
-      "exclusive_frac": 0.002139441228290964
+      "exclusive_correct": 13,
+      "exclusive_frac": 0.0016360432922225018
     },
     {
       "label": "financial",
       "model": "bert",
-      "exclusive_correct": 12,
-      "exclusive_frac": 0.0015101938082053865
+      "exclusive_correct": 11,
+      "exclusive_frac": 0.0013843443241882709
     },
     {
       "label": "financial",
@@ -173,38 +173,38 @@
     {
       "label": "financial",
       "model": "bilstm",
-      "exclusive_correct": 21,
-      "exclusive_frac": 0.002642839164359426
+      "exclusive_correct": 24,
+      "exclusive_frac": 0.003020387616410773
     },
     {
       "label": "financial",
       "model": "rule_based",
-      "exclusive_correct": 11,
-      "exclusive_frac": 0.0013843443241882709
+      "exclusive_correct": 14,
+      "exclusive_frac": 0.0017618927762396174
     },
     {
       "label": "confidential",
       "model": "bert",
-      "exclusive_correct": 6,
-      "exclusive_frac": 0.0007550969041026932
+      "exclusive_correct": 2,
+      "exclusive_frac": 0.0002516989680342311
     },
     {
       "label": "confidential",
       "model": "roberta",
-      "exclusive_correct": 18,
-      "exclusive_frac": 0.0022652907123080794
+      "exclusive_correct": 20,
+      "exclusive_frac": 0.0025169896803423106
     },
     {
       "label": "confidential",
       "model": "bilstm",
-      "exclusive_correct": 17,
-      "exclusive_frac": 0.002139441228290964
+      "exclusive_correct": 14,
+      "exclusive_frac": 0.0017618927762396174
     },
     {
       "label": "confidential",
       "model": "rule_based",
-      "exclusive_correct": 45,
-      "exclusive_frac": 0.005663226780770199
+      "exclusive_correct": 46,
+      "exclusive_frac": 0.005789076264787314
     }
   ]
 }
